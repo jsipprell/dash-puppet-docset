@@ -23,6 +23,8 @@ Feed
 A dash installable feed is available here (you'll need to open it inside Dash, I've nowhere to serve a url-encoded
 *dash-feed://* url from): https://raw.github.com/jsipprell/dash-puppet-docset/master/puppet.xml
 
+[argh][]
+
 Issues
 ------
 * There isn't always clear mapping between Dash docset "Entry Types" and the elements of the [puppet reference manual][3].
@@ -37,3 +39,4 @@ Issues
 [1]: http://docs.puppetlabs.com/puppet/
 [2]: https://github.com/puppetlabs/puppet-docs
 [3]: http://docs.puppetlabs.com/puppet/2.7/reference/
+[argh]: http://localhost
