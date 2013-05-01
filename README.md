@@ -20,12 +20,14 @@ The Dash docset sqlite index can be regenerated via:
   
 Issues
 ------
-
 * There isn't always clear mapping between Dash docset "Entry Types" and the elements of the [puppet reference manual][3].
   For example, "Indirections" -- I've set those to Dash's "Interface" type, but that obviously isn't really right.
 * The docset index page is set to the puppet types page because it's what I use most, but it would probably be good to pull in
   something more generic/appropriate from puppet-docs.
 * Only 2.7.21 docs (really, 2.7."latest") at the moment.
+* Automation for pulling in docs from the original puppet markdown or modifying the puppet-docs regen
+  is some fashion so that it can generate a docset.
+* Figure out how to provide nested references ala some of the other docsets (Python, Apple, etc)
 
 [1]: http://docs.puppetlabs.com/puppet/
 [2]: https://github.com/puppetlabs/puppet-docs

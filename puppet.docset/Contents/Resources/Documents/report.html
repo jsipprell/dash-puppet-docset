@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en-US">
+  <head>
+  	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  	<title>Report Reference — Documentation — Puppet Labs</title>     
+
+    <!-- All in One SEO Pack 1.6.10.1 by Michael Torbert of Semper Fi Web Design[127,146] -->
+    <meta name="keywords" content="Puppet, puppet labs, reductive labs, open source, system administrator, ruby, data center, automation, support" />
+    <!-- /all in one seo pack -->
+
+    <!-- Give us the option of setting a canonical URL in yaml frontmatter -NF -->
+    <link rel="canonical" href="http://docs.puppetlabs.com/references/latest/report.html" />
+
+    <!-- FIXME: absolute paths -->
+
+    <link rel="stylesheet" type="text/css" href="stylesheets/style.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/syntax.css" media="screen"> <!-- index -->
+</head>
+<body id="puppetlabsdocs" class="docs">
+      <section id="content">
+        <div class="site-width">
+          <div class="primary-secondary-content">
+            <div class="primary-content">
+<h2 id="docset-header">Puppet Report Reference <span class="version">2.7.21</span></h2> 
+<p><em>(last generated on Mon Mar 18 10:58:01 -0700 2013)</em></p>
+
+<p>Puppet clients can report back to the server after each transaction.  This
+transaction report is sent as a YAML dump of the
+<code>Puppet::Transaction::Report</code> class and includes every log message that was
+generated during the transaction along with as many metrics as Puppet knows how
+to collect.  See <a rel="external" href="http://projects.puppetlabs.com/projects/puppet/wiki/Reports_And_Reporting">Reports and Reporting</a> for more information on how to use reports.</p>
+
+<p>Currently, clients default to not sending in reports; you can enable reporting
+by setting the <code>report</code> parameter to true.</p>
+
+<p>To use a report, set the <code>reports</code> parameter on the server; multiple
+reports must be comma-separated.  You can also specify <code>none</code> to disable
+reports entirely.</p>
+
+<p>Puppet provides multiple report handlers that will process client reports:</p>
+
+<h2 id="http">http</h2>
+<p>Send report information via HTTP to the <code>reporturl</code>. Each host sends
+its report as a YAML dump and this sends this YAML to a client via HTTP POST.
+The YAML is the body of the request.</p>
+
+<h2 id="log">log</h2>
+<p>Send all received logs to the local log destinations.  Usually
+the log destination is syslog.</p>
+
+<h2 id="rrdgraph">rrdgraph</h2>
+<p>Graph all available data about hosts using the RRD library.  You
+must have the Ruby RRDtool library installed to use this report, which
+you can get from 
+<a rel="external" href="http://rubyforge.org/projects/rubyrrdtool/">the RubyRRDTool RubyForge page</a>.<br />
+This package may also be available as <code>ruby-rrd</code> or <code>rrdtool-ruby</code> in your 
+distribution&#8217;s package management system.  The library and/or package will both 
+require the binary <code>rrdtool</code> package from your distribution to be installed.</p>
+
+<p>This report will create, manage, and graph RRD database files for each
+of the metrics generated during transactions, and it will create a
+few simple html files to display the reporting host&#8217;s graphs.  At this
+point, it will not create a common index file to display links to
+all hosts.</p>
+
+<p>All RRD files and graphs get created in the <code>rrddir</code> directory.  If
+you want to serve these publicly, you should be able to just alias that
+directory in a web server.</p>
+
+<p>If you really know what you&#8217;re doing, you can tune the <code>rrdinterval</code>,
+which defaults to the <code>runinterval</code>.</p>
+
+<h2 id="store">store</h2>
+<p>Store the yaml report on disk.  Each host sends its report as a YAML dump
+and this just stores the file on disk, in the <code>reportdir</code> directory.</p>
+
+<p>These files collect quickly &#8211; one every half hour &#8211; so it is a good idea
+to perform some maintenance on them if you use this report (it&#8217;s the only
+default report).</p>
+
+<h2 id="tagmail">tagmail</h2>
+<p>This report sends specific log messages to specific email addresses
+based on the tags in the log messages.  </p>
+
+<p>See the <a rel="external" href="http://projects.puppetlabs.com/projects/puppet/wiki/Using_Tags">documentation on tags</a> for more information.</p>
+
+<p>To use this report, you must create a <code>tagmail.conf</code> file in the location
+specified by the <code>tagmap</code> setting.  This is a simple file that maps tags to
+email addresses:  Any log messages in the report that match the specified
+tags will be sent to the specified email addresses.</p>
+
+<p>Lines in the <code>tagmail.conf</code> file consist of a comma-separated list
+of tags, a colon, and a comma-separated list of email addresses.
+Tags can be !negated with a leading exclamation mark, which will
+subtract any messages with that tag from the set of events handled
+by that line.</p>
+
+<p>Puppet&#8217;s log levels (<code>debug</code>, <code>info</code>, <code>notice</code>, <code>warning</code>, <code>err</code>,
+<code>alert</code>, <code>emerg</code>, <code>crit</code>, and <code>verbose</code>) can also be used as tags,
+and there is an <code>all</code> tag that will always match all log messages.</p>
+
+<p>An example <code>tagmail.conf</code>:</p>
+
+<pre><code>all: me@domain.com
+webserver, !mailserver: httpadmins@domain.com
+</code></pre>
+
+<p>This will send all messages to <code>me@domain.com</code>, and all messages from
+webservers that are not also from mailservers to <code>httpadmins@domain.com</code>.</p>
+
+<p>If you are using anti-spam controls such as grey-listing on your mail
+server, you should whitelist the sending email address (controlled by
+<code>reportform</code> configuration option) to ensure your email is not discarded as spam.</p>
+
+<hr />
+
+<p><em>This page autogenerated on Mon Mar 18 10:58:01 -0700 2013</em></p>
+
+              <blockquote><p style="font-size: 1.3em; text-align: center;"><a href="#content">↑ Back to top</a></p></blockquote>
+            </div>
+          </div>
+        </div>
+      </section>
+    <div id="copyright">
+      <div class="site-width">
+        &copy; 2011 <a href="http://www.puppetlabs.com/" title="Puppet Labs">Puppet Labs</a>
+        <span class="vcard">
+         <span class="org"></span>
+         <a class="email" href="mailto:info@puppetlabs.com">info@puppetlabs.com</a>
+
+          <span class="adr">
+           <span class="street-address">926 NW 13th Avenue #210</span>
+           /
+           <span class="locality">Portland</span>,
+           <span class="region">OR</span>
+           <span class="postal-code">97209</span>
+
+          </span>
+
+         <span class="tel">1-877-575-9775</span>
+        </span>
+      </div>
+    </div>
+	</body>
+</html>

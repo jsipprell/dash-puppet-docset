@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en-US">
+  <head>
+  	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  	<title>Indirection Reference — Documentation — Puppet Labs</title>     
+
+    <!-- All in One SEO Pack 1.6.10.1 by Michael Torbert of Semper Fi Web Design[127,146] -->
+    <meta name="keywords" content="Puppet, puppet labs, reductive labs, open source, system administrator, ruby, data center, automation, support" />
+    <!-- /all in one seo pack -->
+
+    <!-- Give us the option of setting a canonical URL in yaml frontmatter -NF -->
+    <link rel="canonical" href="http://docs.puppetlabs.com/references/latest/indirection.html" />
+
+    <!-- FIXME: absolute paths -->
+
+    <link rel="stylesheet" type="text/css" href="stylesheets/style.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/syntax.css" media="screen"> <!-- index -->
+</head>
+<body id="puppetlabsdocs" class="docs">
+  <style type="text/css">h1, h2{ visibility : hidden }</style>
+      <section id="content">
+        <div class="site-width">
+          <div class="primary-secondary-content">
+            <div class="primary-content">
+<h2 id="docset-header">Puppet Indirection Reference <span class="version">2.7.21</span></h2> 
+<p><em>(last generated on Tue Nov 20 12:10:05 -0800 2012)</em></p>
+<style type="text/css">h1, h2{ visibility: visible; }</style>
+<p>This is the list of all indirections, their associated terminus classes, and how you select between them.</p>
+
+<p>In general, the appropriate terminus class is selected by the application for you (e.g., <code>puppet agent</code> would always use the <code>rest</code>
+terminus for most of its indirected classes), but some classes are tunable via normal settings.  These will have <code>terminus setting</code> documentation listed with them.</p>
+
+<h2 id="catalog">catalog</h2>
+
+<ul>
+  <li><strong>Terminus Setting</strong>: catalog_terminus</li>
+</ul>
+
+<dl>
+  <dt>active_record</dt>
+  <dd></dd>
+  <dt>compiler</dt>
+  <dd>Puppet&#8217;s catalog compilation interface, and its back-end is
+Puppet&#8217;s compiler</dd>
+  <dt>queue</dt>
+  <dd></dd>
+  <dt>rest</dt>
+  <dd>Find resource catalogs over HTTP via REST.</dd>
+  <dt>static_compiler</dt>
+  <dd></dd>
+  <dt>store_configs</dt>
+  <dd></dd>
+  <dt>yaml</dt>
+  <dd>Store catalogs as flat files, serialized using YAML.</dd>
+</dl>
+
+<h2 id="certificate">certificate</h2>
+
+<dl>
+  <dt>ca</dt>
+  <dd>Manage the CA collection of signed SSL certificates on disk.</dd>
+  <dt>disabled_ca</dt>
+  <dd>Manage SSL certificates on disk, but reject any remote access
+to the SSL data store.  Used when a master has an explicitly disabled
+CA to prevent clients getting confusing &#8216;success&#8217; behaviour.</dd>
+  <dt>file</dt>
+  <dd>Manage SSL certificates on disk.</dd>
+  <dt>rest</dt>
+  <dd>Find and save certificates over HTTP via REST.</dd>
+</dl>
+
+<h2 id="certificaterequest">certificate_request</h2>
+
+<dl>
+  <dt>ca</dt>
+  <dd>Manage the CA collection of certificate requests on disk.</dd>
+  <dt>disabled_ca</dt>
+  <dd>Manage SSL certificate requests on disk, but reject any remote access
+to the SSL data store. Used when a master has an explicitly disabled CA to
+prevent clients getting confusing &#8216;success&#8217; behaviour.</dd>
+  <dt>file</dt>
+  <dd>Manage the collection of certificate requests on disk.</dd>
+  <dt>rest</dt>
+  <dd>Find and save certificate requests over HTTP via REST.</dd>
+</dl>
+
+<h2 id="certificaterevocationlist">certificate_revocation_list</h2>
+
+<dl>
+  <dt>ca</dt>
+  <dd>Manage the CA collection of certificate requests on disk.</dd>
+  <dt>disabled_ca</dt>
+  <dd>Manage SSL certificate revocation lists, but reject any remote access
+to the SSL data store. Used when a master has an explicitly disabled CA to
+prevent clients getting confusing &#8216;success&#8217; behaviour.</dd>
+  <dt>file</dt>
+  <dd>Manage the global certificate revocation list.</dd>
+  <dt>rest</dt>
+  <dd>Find and save certificate revocation lists over HTTP via REST.</dd>
+</dl>
+
+<h2 id="certificatestatus">certificate_status</h2>
+
+<dl>
+  <dt>file</dt>
+  <dd></dd>
+  <dt>rest</dt>
+  <dd>Sign, revoke, search for, or clean certificates &amp; certificate requests over HTTP.</dd>
+</dl>
+
+<h2 id="facts">facts</h2>
+
+<ul>
+  <li><strong>Terminus Setting</strong>: facts_terminus</li>
+</ul>
+
+<dl>
+  <dt>active_record</dt>
+  <dd></dd>
+  <dt>couch</dt>
+  <dd></dd>
+  <dt>facter</dt>
+  <dd>Retrieve facts from Facter.  This provides a somewhat abstract interface
+between Puppet and Facter.  It&#8217;s only <code>somewhat</code> abstract because it always
+returns the local host&#8217;s facts, regardless of what you attempt to find.</dd>
+  <dt>inventory_active_record</dt>
+  <dd></dd>
+  <dt>inventory_service</dt>
+  <dd>Find and save facts about nodes using a remote inventory service.</dd>
+  <dt>memory</dt>
+  <dd>Keep track of facts in memory but nowhere else.  This is used for
+one-time compiles, such as what the stand-alone <code>puppet</code> does.
+To use this terminus, you must load it with the data you want it
+to contain.</dd>
+  <dt>network_device</dt>
+  <dd>Retrieve facts from a network device.</dd>
+  <dt>rest</dt>
+  <dd>Find and save facts about nodes over HTTP via REST.</dd>
+  <dt>store_configs</dt>
+  <dd></dd>
+  <dt>yaml</dt>
+  <dd>Store client facts as flat files, serialized using YAML, or
+return deserialized facts from disk.</dd>
+</dl>
+
+<h2 id="filebucketfile">file_bucket_file</h2>
+
+<dl>
+  <dt>file</dt>
+  <dd>Store files in a directory set based on their checksums.</dd>
+  <dt>rest</dt>
+  <dd>This is a REST based mechanism to send/retrieve file to/from the filebucket</dd>
+  <dt>selector</dt>
+  <dd>Select the terminus based on the request</dd>
+</dl>
+
+<h2 id="filecontent">file_content</h2>
+
+<dl>
+  <dt>file</dt>
+  <dd>Retrieve file contents from disk.</dd>
+  <dt>file_server</dt>
+  <dd>Retrieve file contents using Puppet&#8217;s fileserver.</dd>
+  <dt>rest</dt>
+  <dd>Retrieve file contents via a REST HTTP interface.</dd>
+  <dt>selector</dt>
+  <dd>Select the terminus based on the request</dd>
+</dl>
+
+<h2 id="filemetadata">file_metadata</h2>
+
+<dl>
+  <dt>file</dt>
+  <dd>Retrieve file metadata directly from the local filesystem.</dd>
+  <dt>file_server</dt>
+  <dd>Retrieve file metadata using Puppet&#8217;s fileserver.</dd>
+  <dt>rest</dt>
+  <dd>Retrieve file metadata via a REST HTTP interface.</dd>
+  <dt>selector</dt>
+  <dd>Select the terminus based on the request</dd>
+</dl>
+
+<h2 id="instrumentationdata">instrumentation_data</h2>
+
+<dl>
+  <dt>local</dt>
+  <dd></dd>
+  <dt>rest</dt>
+  <dd></dd>
+</dl>
+
+<h2 id="instrumentationlistener">instrumentation_listener</h2>
+
+<dl>
+  <dt>local</dt>
+  <dd></dd>
+  <dt>rest</dt>
+  <dd></dd>
+</dl>
+
+<h2 id="instrumentationprobe">instrumentation_probe</h2>
+
+<dl>
+  <dt>local</dt>
+  <dd></dd>
+  <dt>rest</dt>
+  <dd></dd>
+</dl>
+
+<h2 id="inventory">inventory</h2>
+
+<ul>
+  <li><strong>Terminus Setting</strong>: inventory_terminus</li>
+</ul>
+
+<dl>
+  <dt>yaml</dt>
+  <dd>Return node names matching the fact query</dd>
+</dl>
+
+<h2 id="key">key</h2>
+
+<dl>
+  <dt>ca</dt>
+  <dd>Manage the CA&#8217;s private on disk.  This terminus <em>only</em> works
+with the CA key, because that&#8217;s the only key that the CA ever interacts
+with.</dd>
+  <dt>disabled_ca</dt>
+  <dd>Manage the CA private key, but reject any remote access
+to the SSL data store. Used when a master has an explicitly disabled CA to
+prevent clients getting confusing &#8216;success&#8217; behaviour.</dd>
+  <dt>file</dt>
+  <dd>Manage SSL private and public keys on disk.</dd>
+</dl>
+
+<h2 id="node">node</h2>
+
+<p>Where to find node information.
+A node is composed of its name, its facts, and its environment.</p>
+
+<ul>
+  <li><strong>Terminus Setting</strong>: node_terminus</li>
+</ul>
+
+<dl>
+  <dt>active_record</dt>
+  <dd></dd>
+  <dt>exec</dt>
+  <dd>Call an external program to get node information.  See
+the <a href="http://docs.puppetlabs.com/guides/external_nodes.html">External Nodes</a> page for more information.</dd>
+  <dt>ldap</dt>
+  <dd>Search in LDAP for node configuration information.  See
+the <a href="http://projects.puppetlabs.com/projects/puppet/wiki/Ldap_Nodes">LDAP Nodes</a> page for more information.  This will first
+search for whatever the certificate name is, then (if that name
+contains a <code>.</code>) for the short name, then <code>default</code>.</dd>
+  <dt>memory</dt>
+  <dd>Keep track of nodes in memory but nowhere else.  This is used for
+one-time compiles, such as what the stand-alone <code>puppet</code> does.
+To use this terminus, you must load it with the data you want it
+to contain; it is only useful for developers and should generally not
+be chosen by a normal user.</dd>
+  <dt>plain</dt>
+  <dd>Always return an empty node object. Assumes you keep track of nodes
+in flat file manifests.  You should use it when you don&#8217;t have some other,
+functional source you want to use, as the compiler will not work without a
+valid node terminus.
+
+    <p>Note that class is responsible for merging the node&#8217;s facts into the
+node instance before it is returned.</p>
+  </dd>
+  <dt>rest</dt>
+  <dd>This will eventually be a REST-based mechanism for finding nodes.  It is currently non-functional.</dd>
+  <dt>store_configs</dt>
+  <dd></dd>
+  <dt>yaml</dt>
+  <dd>Store node information as flat files, serialized using YAML,
+or deserialize stored YAML nodes.</dd>
+</dl>
+
+<h2 id="report">report</h2>
+
+<dl>
+  <dt>processor</dt>
+  <dd>Puppet&#8217;s report processor.  Processes the report with each of
+the report types listed in the &#8216;reports&#8217; setting.</dd>
+  <dt>rest</dt>
+  <dd>Get server report over HTTP via REST.</dd>
+  <dt>yaml</dt>
+  <dd>Store last report as a flat file, serialized using YAML.</dd>
+</dl>
+
+<h2 id="resource">resource</h2>
+
+<dl>
+  <dt>active_record</dt>
+  <dd></dd>
+  <dt>ral</dt>
+  <dd></dd>
+  <dt>rest</dt>
+  <dd></dd>
+  <dt>store_configs</dt>
+  <dd></dd>
+</dl>
+
+<h2 id="resourcetype">resource_type</h2>
+
+<dl>
+  <dt>parser</dt>
+  <dd>Return the data-form of a resource type.</dd>
+  <dt>rest</dt>
+  <dd>Retrieve resource types via a REST HTTP interface.</dd>
+</dl>
+
+<h2 id="status">status</h2>
+
+<dl>
+  <dt>local</dt>
+  <dd></dd>
+  <dt>rest</dt>
+  <dd></dd>
+</dl>
+
+<hr />
+
+<p><em>This page autogenerated on Tue Nov 20 12:10:05 -0800 2012</em></p>
+
+              <blockquote><p style="font-size: 1.3em; text-align: center;"><a href="#content">↑ Back to top</a></p></blockquote>
+            </div>
+          </div>
+        </div>
+      </section>
+    <div id="copyright">
+      <div class="site-width">
+        &copy; 2011 <a href="http://www.puppetlabs.com/" title="Puppet Labs">Puppet Labs</a>
+        <span class="vcard">
+         <span class="org"></span>
+         <a class="email" href="mailto:info@puppetlabs.com">info@puppetlabs.com</a>
+
+          <span class="adr">
+           <span class="street-address">926 NW 13th Avenue #210</span>
+           /
+           <span class="locality">Portland</span>,
+           <span class="region">OR</span>
+           <span class="postal-code">97209</span>
+
+          </span>
+
+         <span class="tel">1-877-575-9775</span>
+        </span>
+      </div>
+    </div>
+	</body>
+</html>
