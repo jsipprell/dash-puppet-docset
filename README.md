@@ -17,7 +17,11 @@ The Dash docset sqlite index can be regenerated via:
 
     $ echo 'delete from searchIndex;' | sqlite3 puppet.docset/Contents/Resources/docSet.dsidx
     $ ./regen-sql-index.sh | sqlite3 puppet.docset/Contents/Resources/docSet.dsidx
-  
+
+Feed
+----
+Here is a Dash installable [docset feed][].
+
 Issues
 ------
 * There isn't always clear mapping between Dash docset "Entry Types" and the elements of the [puppet reference manual][3].
@@ -32,3 +36,4 @@ Issues
 [1]: http://docs.puppetlabs.com/puppet/
 [2]: https://github.com/puppetlabs/puppet-docs
 [3]: http://docs.puppetlabs.com/puppet/2.7/reference/
+[docset feed]: https://raw.github.com/jsipprell/dash-puppet-docset/master/Puppet.xml
