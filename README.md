@@ -20,7 +20,7 @@ The Dash docset sqlite index can be regenerated via:
 
 Feed
 ----
-Here is a Dash installable [docset feed][].
+Here is a Dash installable feed is available here: https://raw.github.com/jsipprell/dash-puppet-docset/master/Puppet.xml
 
 Issues
 ------
@@ -36,4 +36,3 @@ Issues
 [1]: http://docs.puppetlabs.com/puppet/
 [2]: https://github.com/puppetlabs/puppet-docs
 [3]: http://docs.puppetlabs.com/puppet/2.7/reference/
-[docset feed]: dash-feed://https%3A%2F%2Fraw.github.com%2Fjsipprell%2Fdash-puppet-docset%2Fmaster%2FPuppet.xml
