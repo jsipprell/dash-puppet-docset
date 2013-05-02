@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en-US">
+<head>
+  	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  	<title>Language: Relationships and Ordering - Documentation - Puppet Labs</title>     
+    <meta name="keywords" content="Puppet, puppet labs, reductive labs, open source, system administrator, ruby, data center, automation, support" />
+    <link rel="canonical" href="http://docs.puppetlabs.com/lang_relationships.html" />
+    <link rel="stylesheet" type="text/css" href="./stylesheets/style.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="./stylesheets/syntax.css" media="screen"> <!-- index -->
+</head>
+
+<body id="puppetlabsdocs" class="docs">
+<section id="content">
+  <div class="site-width">
+    <div class="primary-secondary-content">
+      <div class="primary-content">
+      <!-- dash-puppet-docset header, layout: default -->
+<h2 id="docset-header">Puppet Language: Relationships and Ordering <span class="version">2.7.21</span></h2>
+
+<p>The order of <a href="./lang_resources.html">resources</a> in a Puppet manifest does not matter. Puppet assumes that most resources are not related to each other and will manage the resources in whatever order is most efficient.</p>
+<p>If a group of resources should be managed in a specific order, you must explicitly declare the relationships. </p>
+<h2 id="syntax">Syntax</h2>
+<p>Relationships can be declared with the relationship metaparameters, chaining arrows, and the <code>require</code> function. </p>
+<h3 id="relationship-metaparameters">Relationship Metaparameters</h3>
+<pre><code>  package { 'openssh-server':
+    ensure =&gt; present,
+    before =&gt; File['/etc/ssh/sshd_config'],
+  }
+</code></pre>
+<p>Puppet uses four <a href="./lang_resources.html#metaparameters">metaparameters</a> to establish relationships. Each of them can be set as an attribute in any resource. The value of any relationship metaparameter should be a <a href="./lang_datatypes.html#resource-references">resource reference</a> (or <a href="./lang_datatypes.html#arrays">array</a> of references) pointing to one or more <strong>target resources.</strong> </p>
+<dl>
+<dt><code>before</code></dt>
+<dd>Causes a resource to be applied <strong>before</strong> the target resource.</dd>
+<dt><code>require</code></dt>
+<dd>Causes a resource to be applied <strong>after</strong> the target resource.</dd>
+<dt><code>notify</code></dt>
+<dd>Causes a resource to be applied <strong>before</strong> the target resource. The target resource will refresh if the notifying resource changes.</dd>
+<dt><code>subscribe</code></dt>
+<dd>Causes a resource to be applied <strong>after</strong> the target resource. The subscribing resource will refresh if the target resource changes. </dd>
+</dl>
+<p>If two resources need to happen in order, you can either put a <code>before</code> attribute in the prior one or a <code>require</code> attribute in the subsequent one; either approach will create the same relationship. The same is true of <code>notify</code> and <code>subscribe</code>. </p>
+<p>The two examples below create the same ordering relationship:</p>
+<pre><code>  package { 'openssh-server':
+    ensure =&gt; present,
+    before =&gt; File['/etc/ssh/sshd_config'],
+  }
+
+  file { '/etc/ssh/sshd_config':
+    ensure  =&gt; file,
+    mode    =&gt; 600,
+    source  =&gt; 'puppet:///modules/sshd/sshd_config',
+    require =&gt; Package['openssh-server'],
+  }
+</code></pre>
+<p>The two examples below create the same notification relationship:</p>
+<pre><code>  file { '/etc/ssh/sshd_config':
+    ensure =&gt; file,
+    mode   =&gt; 600,
+    source =&gt; 'puppet:///modules/sshd/sshd_config',
+    notify =&gt; Service['sshd'],
+  }
+
+  service { 'sshd':
+    ensure    =&gt; running,
+    enable    =&gt; true,
+    subscribe =&gt; File['/etc/ssh/sshd_config'],
+  }
+</code></pre>
+<h3 id="chaining-arrows">Chaining Arrows</h3>
+<pre><code>  # ntp.conf is applied first, and will notify the ntpd service if it changes:
+  File['/etc/ntp.conf'] ~&gt; Service['ntpd']
+</code></pre>
+<p>You can create relationships between two resources or groups of resources using the <code>-&gt;</code> and <code>~&gt;</code> operators.</p>
+<dl>
+<dt><code>-&gt;</code> (ordering arrow)</dt>
+<dd>Causes the resource on the left to be applied before the resource on the right. Written with a hyphen and a greater-than sign.</dd>
+<dt><code>~&gt;</code> (notification arrow)</dt>
+<dd>Causes the resource on the left to be applied first, and sends a refresh event to the resource on the right if the left resource changes. Written with a tilde and a greater-than sign.</dd>
+</dl>
+<h4 id="operands">Operands</h4>
+<p>The chaining arrows accept the following types of operands on either side of the arrow:</p>
+<ul>
+<li><a href="./lang_datatypes.html#resource-references">Resource references</a>, including multi-resource references</li>
+<li><a href="./lang_resources.html">Resource declarations</a></li>
+<li><a href="./lang_collectors.html">Resource collectors</a></li>
+</ul>
+<blockquote>
+<p>Note: Arrays of references cannot be chained. To chain multiple resources at once, you must use a multi-resource reference or a collector.</p>
+</blockquote>
+<p>An operand can be shared between two chaining statements, which allows you to link them together into a "timeline:"</p>
+<pre><code>  Package['ntp'] -&gt; File['/etc/ntp.conf'] ~&gt; Service['ntpd']
+</code></pre>
+<p>Since resource declarations can be chained, you can use chaining arrows to make Puppet apply a section of code in the order that it is written:</p>
+<pre><code>  # first:
+  package { 'openssh-server':
+    ensure =&gt; present,
+  } -&gt; # and then:
+  file { '/etc/ssh/sshd_config':
+    ensure =&gt; file,
+    mode   =&gt; 600,
+    source =&gt; 'puppet:///modules/sshd/sshd_config',
+  } ~&gt; # and then:
+  service { 'sshd':
+    ensure =&gt; running,
+    enable =&gt; true,
+  }
+</code></pre>
+<p>And since collectors can be chained, you can create many-to-many relationships:</p>
+<pre><code>  Yumrepo &lt;| |&gt; -&gt; Package &lt;| |&gt;
+</code></pre>
+<p>This example would apply all yum repository resources before applying any package resources, which protects any packages that rely on custom repos. </p>
+<blockquote>
+<p>Note: Chained collectors can potentially cause huge <a href="#dependency-cycles">dependency cycles</a> and should be used carefully. They can also be dangerous when used with <a href="./lang_virtual.html">virtual resources</a>, which are implicitly realized by collectors.  </p>
+<p>Note: Collectors can only search on attributes which are present in the manifests and cannot see properties that must be read from the target system. For example, if the example above had been written as <code>Yumrepo &lt;| |&gt; -&gt; Package &lt;| provider == yum |&gt;</code>, it would only create relationships with packages whose <code>provider</code> attribute had been <em>explicitly</em> set to <code>yum</code> in the manifests. It would not affect any packages that didn't specify a provider but would end up using Yum.</p>
+</blockquote>
+<h4 id="reversed-forms">Reversed Forms</h4>
+<p>Both chaining arrows have a reversed form (<code>&lt;-</code> and <code>&lt;~</code>). As implied by their shape, these forms operate in reverse, causing the resource on their right to be applied before the resource on their left. </p>
+<blockquote>
+<p>Note: As the majority of Puppet's syntax is written left-to-right, these reversed forms can be confusing and are not recommended. </p>
+</blockquote>
+<h3 id="the-require-function">The <code>require</code> Function</h3>
+<p><a href="./lang_classes.html#declaring-a-class-with-require">The <code>require</code> function</a> declares a <a href="./lang_classes.html">class</a> and causes it to become a dependency of the surrounding container:</p>
+<pre><code>  class wordpress {
+    require apache
+    require mysql
+    ...
+  }
+</code></pre>
+<p>The above example would cause every resource in the <code>apache</code> and <code>mysql</code> classes to be applied before any of the resources in the <code>wordpress</code> class. </p>
+<p>Unlike the relationship metaparameters and chaining arrows, the <code>require</code> function does not have a reciprocal form or a notifying form. However, more complex behavior can be obtained by combining <code>include</code> and chaining arrows inside a class definition:</p>
+<pre><code>  class apache::ssl {
+    include site::certificates
+    # Restart every service in this class if any of our SSL certificates change on disk:
+    Class['site::certificates'] ~&gt; Class['apache::ssl']
+  }
+</code></pre>
+<h2 id="behavior">Behavior</h2>
+<h3 id="ordering-and-notification">Ordering and Notification</h3>
+<p>Puppet has two types of resource relationships: </p>
+<ul>
+<li>Ordering</li>
+<li>Ordering with notification</li>
+</ul>
+<p>An ordering relationship ensures that one resource will be managed before another. </p>
+<p>A notification relationship does the same, but <strong>also</strong> sends the latter resource a <strong>refresh event</strong> if Puppet <a href="./lang_resources.html#behavior">changes the first resource's state</a>. A refresh event causes the recipient to refresh itself. </p>
+<h3 id="refreshing">Refreshing</h3>
+<p>Only certain resource types can refresh themselves. Of the built-in types, these are <a href="/references/latest/type.html#service">service</a>, <a href="/references/latest/type.html#mount">mount</a>, and <a href="/references/latest/type.html#exec">exec</a>. </p>
+<p>Service resources refresh by restarting their service. Mount resources refresh by unmounting and then mounting their volume. Exec resources usually do not refresh, but can be made to: setting <code>refreshonly =&gt; true</code> causes the exec to never fire <em>unless</em> it receives a refresh event. You can also set an additional <code>refresh</code> command, which causes the exec to run both commands when it receives a refresh event.</p>
+<h3 id="parse-order-independence">Parse-Order Independence</h3>
+<p>Relationships are not limited by parse-order. You can declare a relationship with a resource before that resource has been declared. </p>
+<h3 id="missing-dependencies">Missing Dependencies</h3>
+<p>If one of the resources in a relationship is never declared, <strong>compilation will fail</strong> with one of the following errors:</p>
+<ul>
+<li><code>Could not find dependency &lt;OTHER RESOURCE&gt; for &lt;RESOURCE&gt;</code></li>
+<li><code>Could not find resource '&lt;OTHER RESOURCE&gt;' for relationship on '&lt;RESOURCE&gt;'</code>.</li>
+</ul>
+<h3 id="failed-dependencies">Failed Dependencies</h3>
+<p>If Puppet fails to apply the prior resource in a relationship, it will skip the subsequent resource and log the following messages:</p>
+<pre><code>  notice: &lt;RESOURCE&gt;: Dependency &lt;OTHER RESOURCE&gt; has failures: true
+  warning: &lt;RESOURCE&gt;: Skipping because of failed dependencies
+</code></pre>
+<p>It will then continue to apply any unrelated resources. Any resources that depend on the skipped resource will also be skipped. </p>
+<p>This helps prevent inconsistent system state by causing a "clean" failure instead of attempting to apply a resource whose prerequisites may be broken. </p>
+<blockquote>
+<p>Note: Although a resource won't be applied if a dependency fails, it can still receive and respond to refresh events from other, successful, dependencies. This is because refreshes are handled semi-independently of the normal resource sync process. It is an outstanding design issue, and may be tracked at <a href="http://projects.puppetlabs.com/issues/7486">issue #7486</a>. </p>
+</blockquote>
+<h3 id="dependency-cycles">Dependency Cycles</h3>
+<p>If two or more resources require each other in a loop, Puppet will compile the catalog but will be unable to apply it. Puppet will log an error like the following, and will attempt to help you identify the cycle:</p>
+<pre><code>  err: Could not apply complete catalog: Found 1 dependency cycle:
+  (&lt;RESOURCE&gt; =&gt; &lt;OTHER RESOURCE&gt; =&gt; &lt;RESOURCE&gt;)
+  Try the '--graph' option and opening the resulting '.dot' file in OmniGraffle or GraphViz
+</code></pre>
+<p>To locate the directory containing the graph files, run <code>puppet agent --configprint graphdir</code>.</p>
+<!-- dash-puppet-docset footer, layout: default -->
+              <blockquote><p style="font-size: 1.3em; text-align: center;"><a href="#content">↑ Back to top</a></p></blockquote>
+            </div>
+          </div>
+        </div>
+      </section>
+<div id="copyright">
+      <div class="site-width">
+        &copy; 2011 <a href="http://www.puppetlabs.com/" title="Puppet Labs">Puppet Labs</a>
+        <span class="vcard">
+         <span class="org"></span>
+         <a class="email" href="mailto:info@puppetlabs.com">info@puppetlabs.com</a>
+
+          <span class="adr">
+           <span class="street-address">926 NW 13th Avenue #210</span>
+           /
+           <span class="locality">Portland</span>,
+           <span class="region">OR</span>
+           <span class="postal-code">97209</span>
+
+          </span>
+
+         <span class="tel">1-877-575-9775</span>
+        </span>
+      </div>
+    </div>
+  </body>
+</html>
+</body>
+</html>

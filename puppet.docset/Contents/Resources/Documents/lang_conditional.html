@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en-US">
+<head>
+  	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  	<title>Language: Conditional Statements - Documentation - Puppet Labs</title>     
+    <meta name="keywords" content="Puppet, puppet labs, reductive labs, open source, system administrator, ruby, data center, automation, support" />
+    <link rel="canonical" href="http://docs.puppetlabs.com/lang_conditional.html" />
+    <link rel="stylesheet" type="text/css" href="./stylesheets/style.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="./stylesheets/syntax.css" media="screen"> <!-- index -->
+</head>
+
+<body id="puppetlabsdocs" class="docs">
+<section id="content">
+  <div class="site-width">
+    <div class="primary-secondary-content">
+      <div class="primary-content">
+      <!-- dash-puppet-docset header, layout: default -->
+<h2 id="docset-header">Puppet Language: Conditional Statements <span class="version">2.7.21</span></h2>
+
+<p>Conditional statements let your Puppet code behave differently in different situations. They are most helpful when combined with <a href="./lang_variables.html#facts">facts</a> or with data retrieved from an external source.</p>
+<h2 id="summary">Summary</h2>
+<p>Puppet 2.7 supports "if" statements, case statements, and selectors. </p>
+<p>An "if" statement: </p>
+<pre><code>  if $is_virtual == 'true' {
+    warning('Tried to include class ntp on virtual machine; this node may be misclassified.')
+  }
+  elsif $operatingsystem == 'Darwin' {
+    warning('This NTP module does not yet work on our Mac laptops.')
+  }
+  else {
+    include ntp
+  }
+</code></pre>
+<p>A case statement:</p>
+<pre><code>  case $operatingsystem {
+    'Solaris':          { include role::solaris }
+    'RedHat', 'CentOS': { include role::redhat  }
+    /^(Debian|Ubuntu)$/:{ include role::debian  }
+    default:            { include role::generic }
+  }
+</code></pre>
+<p>A selector:</p>
+<pre><code>  $rootgroup = $osfamily ? {
+      'Solaris'          =&gt; 'wheel',
+      /(Darwin|FreeBSD)/ =&gt; 'wheel',
+      default            =&gt; 'root',
+  }
+
+  file { '/etc/passwd':
+    ensure =&gt; file,
+    owner  =&gt; 'root',
+    group  =&gt; $rootgroup,
+  }
+</code></pre>
+<h2 id="if-statements">"If" Statements</h2>
+<p><strong>"If" statements</strong> take a <a href="./lang_datatypes.html#booleans">boolean</a> condition and an arbitrary block of Puppet code, and will only execute the block if the condition is true. They can optionally include <code>elsif</code> and <code>else</code> clauses. </p>
+<h3 id="syntax">Syntax</h3>
+<pre><code>  if $is_virtual == 'true' {
+    # Our NTP module is not supported on virtual machines:
+    warn( 'Tried to include class ntp on virtual machine; this node may be misclassified.' )
+  }
+  elsif $operatingsystem == 'Darwin' {
+    warn ( 'This NTP module does not yet work on our Mac laptops.' )
+  else {
+    # Normal node, include the class.
+    include ntp
+  }
+</code></pre>
+<p>The general form of an "if" statement is:</p>
+<ul>
+<li>The <code>if</code> keyword</li>
+<li>A <strong>condition</strong></li>
+<li>A pair of curly braces containing any Puppet code</li>
+<li><strong>Optionally:</strong> the <code>elsif</code> keyword, another condition, and a pair of curly braces containing Puppet code</li>
+<li><strong>Optionally:</strong> the <code>else</code> keyword and a pair of curly braces containing Puppet code</li>
+</ul>
+<h3 id="behavior">Behavior</h3>
+<p>Puppet's "if" statements behave much like those in any other language. The <code>if</code> condition is processed first and, if it is true, only the <code>if</code> code block is executed. If it is false, each <code>elsif</code> condition (if present) is tested in order, and if all conditions fail, the <code>else</code> code block (if present) is executed.</p>
+<p>If none of the conditions in the statement match and there is no <code>else</code> block, Puppet will do nothing and move on.</p>
+<p>"If" statements will execute a maximum of one code block. </p>
+<h3 id="conditions">Conditions</h3>
+<p>The condition(s) of an "if" statement may be any fragment of Puppet code that resolves to a boolean value. This includes:</p>
+<ul>
+<li><a href="./lang_variables.html">Variables</a></li>
+<li><a href="./lang_expressions.html">Expressions</a>, including arbitrarily nested <code>and</code> and <code>or</code> expressions</li>
+<li><a href="./lang_functions.html">Functions</a> that return values</li>
+</ul>
+<p>Fragments that resolve to non-boolean values will be <a href="./lang_datatypes.html#automatic-conversion-to-boolean">automatically converted to booleans as described here</a>.</p>
+<p>Static values may also be conditions, although doing this would be pointless. </p>
+<h4 id="regex-capture-variables">Regex Capture Variables</h4>
+<p>If you use the regular expression match operator in a condition, any captures from parentheses in the pattern will be available inside the associated code block as numbered variables (<code>$1, $2</code>, etc.), and the entire match will be available as <code>$0</code>:</p>
+<pre><code>  if $hostname =~ /^www(\d+)\./ {
+    notice("Welcome to web server number $1")
+  }
+</code></pre>
+<p>This example would capture any digits from a hostname like <code>www01</code> and <code>www02</code> and store them in the <code>$1</code> variable.</p>
+<p>These are not normal variables, and have some special behaviors:</p>
+<ul>
+<li>The values of the numbered variables do not persist outside the code block associated with the pattern that set them.</li>
+<li>In nested conditionals, each conditional has its own set of values for the set of numbered variables. At the end of an interior statement, the numbered variables are reset to their previous values for the remainder of the outside statement. (This causes conditional statements to act like <a href="./lang_scope.html#local-scopes">local scopes</a>, but only with regard to the numbered variables.)</li>
+</ul>
+<h2 id="case-statements">Case Statements</h2>
+<p>Like "if" statements, <strong>case statements</strong> choose one of several blocks of arbitrary Puppet code to execute. They take a control expression and a list of cases and code blocks, and will execute the first block whose case value matches the control expression. </p>
+<h3 id="syntax_1">Syntax</h3>
+<pre><code>  case $operatingsystem {
+    'Solaris':          { include role::solaris } # apply the solaris class
+    'RedHat', 'CentOS': { include role::redhat  } # apply the redhat class
+    /^(Debian|Ubuntu)$/:{ include role::debian  } # apply the debian class
+    default:            { include role::generic } # apply the generic class
+  }
+</code></pre>
+<p>The general form of a case statement is:</p>
+<ul>
+<li>The <code>case</code> keyword</li>
+<li>A <strong>control expression</strong> (see below)</li>
+<li>An opening curly brace</li>
+<li>Any number of possible matches, which consist of:<pre><code>* A **case** (see below) or comma-separated list of cases
+* A colon
+* A pair of curly braces containing any arbitrary Puppet code
+</code></pre>
+</li>
+<li>A closing curly brace</li>
+</ul>
+<h3 id="behavior_1">Behavior</h3>
+<p>Puppet compares the <strong>control expression</strong> to each of the <strong>cases,</strong> in the order they are listed. It will execute the block of code associated with the <strong>first</strong> matching case, and ignore the remainder of the statement.</p>
+<ul>
+<li>Basic cases are compared with <a href="./lang_expressions.html#equality">the <code>==</code> operator</a> (which is case-insensitive). </li>
+<li>Regular expression cases are compared with <a href="./lang_expressions.html#regex-match">the <code>=~</code> operator</a> (which is case-sensitive).</li>
+<li>The special <code>default</code> case matches anything.</li>
+</ul>
+<p>If none of the cases match, Puppet will do nothing and move on.</p>
+<p>Case statements will execute a maximum of one code block. </p>
+<h3 id="control-expressions">Control Expressions</h3>
+<p>The control expression of a case statement may be any fragment of Puppet code that resolves to a normal value. This includes:</p>
+<ul>
+<li><a href="./lang_variables.html">Variables</a></li>
+<li><a href="./lang_expressions.html">Expressions</a></li>
+<li><a href="./lang_functions.html">Functions</a> that return values</li>
+</ul>
+<h3 id="cases">Cases</h3>
+<p>Cases may be any of the following:</p>
+<ul>
+<li>A literal value (remember to quote strings)</li>
+<li>A variable</li>
+<li>A <a href="./lang_functions.html">function</a> call that returns a value</li>
+<li>A <a href="./lang_datatypes.html#regular-expressions">regular expression</a></li>
+<li>The special bare word value <code>default</code></li>
+</ul>
+<p>Note that you cannot use arbitrary <a href="./lang_expressions.html">expressions</a> or <a href="#selectors">selectors</a> as cases. </p>
+<p>You may use a comma-separated list of cases to associate more than one case with the same block of code.</p>
+<p>Normal values are compared to the control expression using <a href="./lang_expressions.html#equality">the <code>==</code> operator</a>, and regular expressions are compared with <a href="./lang_expressions.html#regex-match">the <code>=~</code> operator</a>. The special <code>default</code> case matches any control expression.</p>
+<p>Cases are compared in the order that they are written in the manifest; thus, the <code>default</code> case (if any) must be at the end of the list. </p>
+<h4 id="regex-capture-variables_1">Regex Capture Variables</h4>
+<p>If you use regular expression cases, any captures from parentheses in the pattern will be available inside the associated code block as numbered variables (<code>$1, $2</code>, etc.), and the entire match will be available as <code>$0</code>:</p>
+<pre><code>  if $hostname =~ /^www(\d+)\./ {
+    notice("Welcome to web server number $1")
+  }
+</code></pre>
+<p>This example would capture any digits from a hostname like <code>www01</code> and <code>www02</code> and store them in the <code>$1</code> variable.</p>
+<p>These are not normal variables, and have some special behaviors:</p>
+<ul>
+<li>The values of the numbered variables do not persist outside the code block associated with the pattern that set them.</li>
+<li>In nested conditionals, each conditional has its own set of values for the set of numbered variables. At the end of an interior statement, the numbered variables are reset to their previous values for the remainder of the outside statement. (This causes conditional statements to act like <a href="./lang_scope.html#local-scopes">local scopes</a>, but only with regard to the numbered variables.)</li>
+</ul>
+<blockquote>
+<h4 id="aside-best-practices">Aside: Best Practices</h4>
+<p>Case statements should usually have a default case. </p>
+<ul>
+<li>If the rest of your cases are meant to be comprehensive, putting a <a href="/references/latest/function.html#fail"><code>fail('message')</code></a> call in the default case makes your code more robust by protecting against mystery failures due to behavior changes elsewhere in your manifests.</li>
+<li>If your cases aren't comprehensive and nodes that match none should do nothing, write a default case with an empty code block (<code>default: {}</code>). This makes your intention obvious to the next person who has to maintain your code. </li>
+</ul>
+</blockquote>
+<h2 id="selectors">Selectors</h2>
+<p><strong>Selector statements</strong> are similar to case statements, but return a value instead of executing a code block.</p>
+<h3 id="location">Location</h3>
+<p>Selectors must be used at places in the code where a <strong>plain value</strong> is expected. This includes:</p>
+<ul>
+<li>Variable assignments</li>
+<li>Resource attributes</li>
+<li>Function arguments</li>
+<li>Resource titles</li>
+<li>A value in another selector</li>
+<li><a href="./lang_expressions.html">Expressions</a></li>
+</ul>
+<p>Selectors are not legal in:</p>
+<ul>
+<li>A case in another selector</li>
+<li>A case in a case statement</li>
+</ul>
+<blockquote>
+<h4 id="aside-best-practices_1">Aside: Best Practices</h4>
+<p>For readability's sake, you should generally only use selectors in variable assignments. </p>
+</blockquote>
+<h3 id="syntax_2">Syntax</h3>
+<p>Selectors resemble a cross between a case statement and the ternary operator found in other languages.</p>
+<pre><code>  $rootgroup = $osfamily ? {
+      'Solaris'          =&gt; 'wheel',
+      /(Darwin|FreeBSD)/ =&gt; 'wheel',
+      default            =&gt; 'root',
+  }
+
+  file { '/etc/passwd':
+    ensure =&gt; file,
+    owner  =&gt; 'root',
+    group  =&gt; $rootgroup,
+  }
+</code></pre>
+<p>In the example above, the value of <code>$rootgroup</code> is determined using the value of <code>$osfamily</code>.</p>
+<p>The general form of a selector is:</p>
+<ul>
+<li>A <strong>control variable</strong></li>
+<li>The <code>?</code> (question mark) keyword</li>
+<li>An opening curly brace</li>
+<li>Any number of possible matches, each of which consists of:<pre><code>* A **case**
+* The `=&gt;` (fat comma) keyword
+* A **value**
+* A trailing comma
+</code></pre>
+</li>
+<li>A closing curly brace</li>
+</ul>
+<h3 id="behavior_2">Behavior</h3>
+<p>The entire selector statement is <strong>treated as a single value.</strong> </p>
+<p>Puppet compares the <strong>control variable</strong> to each of the <strong>cases,</strong> in the order they are listed. When it finds a matching case, it will treat that value as the value of the statement and ignore the remainder of the statement.</p>
+<ul>
+<li>Basic cases are compared with <a href="./lang_expressions.html#equality">the <code>==</code> operator</a> (which is case-insensitive).</li>
+<li>Regular expression cases are compared with <a href="./lang_expressions.html#regex-match">the <code>=~</code> operator</a> (which is case-sensitive).</li>
+<li>The special <code>default</code> case matches anything.</li>
+</ul>
+<p>If none of the cases match, Puppet will <strong>fail compilation with a parse error.</strong> Consequently, a default case should be considered mandatory.</p>
+<h3 id="control-variables">Control Variables</h3>
+<p>Control variables in selectors must be <strong>variables</strong> or <strong>functions that return values.</strong> You cannot use expressions as control variables.</p>
+<h3 id="cases_1">Cases</h3>
+<p>Cases may be any of the following:</p>
+<ul>
+<li>A literal value (remember to quote strings)</li>
+<li>A variable</li>
+<li>A <a href="./lang_functions.html">function</a> call that returns a value</li>
+<li>A <a href="./lang_datatypes.html#regular-expressions">regular expression</a></li>
+<li>The special bare word value <code>default</code></li>
+</ul>
+<p>Note that you cannot use arbitrary <a href="./lang_expressions.html">expressions</a> or <a href="#selectors">selectors</a> as cases. </p>
+<p><strong>Unlike in case statements,</strong> you cannot use lists of cases. If you need more than one case associated with a single value, you must use a regular expression.</p>
+<p>Normal values are compared to the control variable using <a href="./lang_expressions.html#equality">the <code>==</code> operator</a>, and regular expressions are compared with <a href="./lang_expressions.html#regex-match">the <code>=~</code> operator</a>. The special <code>default</code> case matches any control variable.</p>
+<p>Cases are compared in the order that they are written in the manifest; thus, the <code>default</code> case (if any) must be at the end of the list. </p>
+<h4 id="regex-capture-variables_2">Regex Capture Variables</h4>
+<p>If you use regular expression cases, any captures from parentheses in the pattern will be available inside the associated value as numbered variables (<code>$1, $2</code>, etc.), and the entire match will be available as <code>$0</code>:</p>
+<pre><code>  $system = $operatingsystem ? {
+    /(RedHat|Debian)/ =&gt; "our system is $1",
+    default           =&gt; "our system is unknown",
+  }
+</code></pre>
+<p>These are not normal variables, and have some special behaviors:</p>
+<ul>
+<li>The values of the numbered variables do not persist outside the value associated with the pattern that set them.</li>
+<li>In nested conditionals, each conditional has its own set of values for the set of numbered variables. At the end of an interior statement, the numbered variables are reset to their previous values for the remainder of the outside statement. (This causes conditional statements to act like <a href="./lang_scope.html#local-scopes">local scopes</a>, but only with regard to the numbered variables.)</li>
+</ul>
+<h3 id="values">Values</h3>
+<p>Values may be any of the following:</p>
+<ul>
+<li>A literal value</li>
+<li>A variable</li>
+<li>A <a href="./lang_functions.html">function</a> call that returns a value</li>
+<li>Another selector</li>
+</ul>
+<p>Note that you cannot use arbitrary <a href="./lang_expressions.html">expressions</a> as values.</p>
+<!-- dash-puppet-docset footer, layout: default -->
+              <blockquote><p style="font-size: 1.3em; text-align: center;"><a href="#content">↑ Back to top</a></p></blockquote>
+            </div>
+          </div>
+        </div>
+      </section>
+<div id="copyright">
+      <div class="site-width">
+        &copy; 2011 <a href="http://www.puppetlabs.com/" title="Puppet Labs">Puppet Labs</a>
+        <span class="vcard">
+         <span class="org"></span>
+         <a class="email" href="mailto:info@puppetlabs.com">info@puppetlabs.com</a>
+
+          <span class="adr">
+           <span class="street-address">926 NW 13th Avenue #210</span>
+           /
+           <span class="locality">Portland</span>,
+           <span class="region">OR</span>
+           <span class="postal-code">97209</span>
+
+          </span>
+
+         <span class="tel">1-877-575-9775</span>
+        </span>
+      </div>
+    </div>
+  </body>
+</html>
+</body>
+</html>

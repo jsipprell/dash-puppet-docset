@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en-US">
+<head>
+  	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  	<title>Language: Scope - Documentation - Puppet Labs</title>     
+    <meta name="keywords" content="Puppet, puppet labs, reductive labs, open source, system administrator, ruby, data center, automation, support" />
+    <link rel="canonical" href="http://docs.puppetlabs.com/lang_scope.html" />
+    <link rel="stylesheet" type="text/css" href="./stylesheets/style.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="./stylesheets/syntax.css" media="screen"> <!-- index -->
+</head>
+
+<body id="puppetlabsdocs" class="docs">
+<section id="content">
+  <div class="site-width">
+    <div class="primary-secondary-content">
+      <div class="primary-content">
+      <!-- dash-puppet-docset header, layout: default -->
+<h2 id="docset-header">Puppet Language: Scope <span class="version">2.7.21</span></h2>
+
+<h2 id="scope-basics">Scope Basics</h2>
+<p>A <strong>scope</strong> is a specific <strong>area of code,</strong> which is partially isolated from other areas of code. Scopes limit the reach of:</p>
+<ul>
+<li><a href="./lang_variables.html">Variables</a></li>
+<li><a href="./lang_defaults.html">Resource defaults</a></li>
+</ul>
+<p>Scopes <strong>do not</strong> limit the reach of:</p>
+<ul>
+<li><a href="./lang_resources.html">Resource titles</a>, which are all global</li>
+<li><a href="./lang_datatypes.html#resource-references">Resource references</a>, which can refer to a resource declared in any scope</li>
+</ul>
+<h3 id="summary-diagram">Summary Diagram</h3>
+<p><img alt="An Euler diagram of several scopes. Top scope contains node scope, which contains the example::other, example::four, and example::parent scopes. Example::parent contains the example::child scope." src="./images/scope-euler-diagram.png" /></p>
+<p>Any given scope has access to its own contents, and also receives additional contents from its <strong>parent scope,</strong> from node scope, and from top scope.</p>
+<p>In the diagram above:</p>
+<ul>
+<li>Top scope can only access variables and defaults from its own scope.</li>
+<li>Node scope can access variables and defaults from its own scope <strong>and</strong> top scope.</li>
+<li>Each of the <code>example::parent, example::other</code>, and <code>example::four</code> classes can access variables and defaults from their own scope, node scope, and top scope.</li>
+<li>The <code>example::child</code> class can access variables and defaults from its own scope, <code>example::parent</code>'s scope, node scope, and top scope.</li>
+</ul>
+<h3 id="top-scope">Top Scope</h3>
+<p>Code that is <em>outside</em> any class definition, type definition, or node definition exists at <strong>top scope.</strong> Variables and defaults declared at top scope are available <strong>everywhere.</strong> </p>
+<pre><code>  # site.pp
+  $variable = "Hi!"
+
+  class example {
+    notify {"Message from elsewhere: $variable":}
+  }
+
+  include example
+
+  $ puppet apply site.pp
+  notice: Message from elsewhere: Hi!
+</code></pre>
+<h3 id="node-scope">Node Scope</h3>
+<p>Code inside a <a href="./lang_node_definitions.html">node definition</a> exists at <strong>node scope.</strong> Note that since only one node definition can match a given node, only one node scope can exist at a time.</p>
+<p>Variables and defaults declared at node scope are available <strong>everywhere except top scope.</strong></p>
+<blockquote>
+<p>Note: Classes and resources declared at top scope <strong>bypass node scope entirely,</strong> and so cannot access variables or defaults from node scope.</p>
+</blockquote>
+<pre><code>  # site.pp
+  $top_variable = "Available!"
+  node 'puppet.example.com' {
+    $variable = "Hi!"
+    notify {"Message from here: $variable":}
+    notify {"Top scope: $top_variable":}
+  }
+  notify {"Message from top scope: $variable":}
+
+  $ puppet apply site.pp
+  notice: Message from here: Hi!
+  notice: Top scope: Available!
+  notice: Message from top scope:
+</code></pre>
+<p>In this example, node scope can access top scope variables, but not vice-versa.</p>
+<h3 id="local-scopes">Local Scopes</h3>
+<p>Code inside a <a href="./lang_classes.html">class definition</a> or <a href="./lang_defined_types.html">defined type</a> exists in a <strong>local scope.</strong></p>
+<p>Variables and defaults declared in a local scope are only available in <strong>that scope and its children.</strong> There are two different sets of rules for when scopes are considered related; see "<a href="#scope-lookup-rules">scope lookup rules</a>" below.</p>
+<pre><code>  # /etc/puppet/modules/scope_example/manifests/init.pp
+  class scope_example {
+    $variable = "Hi!"
+    notify {"Message from here: $variable":}
+    notify {"Node scope: $node_variable Top scope: $top_variable":}
+  }
+
+  # /etc/puppet/manifests/site.pp
+  $top_variable = "Available!"
+  node 'puppet.example.com' {
+    $node_variable = "Available!"
+    include scope_example
+    notify {"Message from node scope: $variable":}
+  }
+  notify {"Message from top scope: $variable":}
+
+  $ puppet apply site.pp
+  notice: Message from here: Hi!
+  notice: Node scope: Available! Top scope: Available!
+  notice: Message from node scope: 
+  notice: Message from top scope:
+</code></pre>
+<p>In this example, a local scope can see "out" into node and top scope, but outer scopes cannot see "in."</p>
+<h3 id="overriding-received-values">Overriding Received Values</h3>
+<p>Variables and defaults declared at node scope can override those received from top scope. Those declared at local scope can override those received from node and top scope, as well as any parent scopes. That is: if multiple variables with the same name are available, <strong>Puppet will use the "most local" one.</strong></p>
+<pre><code>  # /etc/puppet/modules/scope_example/manifests/init.pp
+  class scope_example {
+    $variable = "Hi, I'm local!"
+    notify {"Message from here: $variable":}
+  }
+
+  # /etc/puppet/manifests/site.pp
+  $variable = "Hi, I'm top!"
+
+  node 'puppet.example.com' {
+    $variable = "Hi, I'm node!"
+    include scope_example
+  }
+
+  $ puppet apply site.pp
+  notice: Message from here: Hi, I'm local!
+</code></pre>
+<p>Resource defaults are processed <strong>by attribute</strong> rather than as a block. Thus, defaults that declare different attributes will be merged, and only the attributes that conflict will be overridden.</p>
+<pre><code>  # /etc/puppet/modules/scope_example/manifests/init.pp
+  class scope_example {
+    File { ensure =&gt; directory, }
+
+    file {'/tmp/example':}
+  }
+
+  # /etc/puppet/manifests/site.pp
+  File {
+    ensure =&gt; file,
+    owner  =&gt; 'puppet',
+  }
+
+  include scope_example
+</code></pre>
+<p>{% endhighlight %}    </p>
+<p>In this example, <code>/tmp/example</code> would be a directory owned by the <code>puppet</code> user, and would combine the defaults from top and local scope. </p>
+<h2 id="more-details">More Details</h2>
+<h3 id="scope-of-external-node-classifier-data">Scope of External Node Classifier Data</h3>
+<ul>
+<li><strong>Variables</strong> provided by an <a href="/guides/external_nodes.html">ENC</a> are set at top scope. </li>
+<li>However, all of the <strong>classes</strong> assigned by an ENC are declared at node scope.</li>
+</ul>
+<p>This gives approximately the best and most-expected behavior --- variables from an ENC are available everywhere, and classes may use node-specific variables.</p>
+<blockquote>
+<p>Note: this means compilation will fail if an ENC tries to set a variable that is already set at top scope by the site manifest. </p>
+</blockquote>
+<h3 id="named-scopes-and-anonymous-scopes">Named Scopes and Anonymous Scopes</h3>
+<p>A class definition creates a <strong>named scope,</strong> whose name is the same as the class's name. Top scope is also a named scope; its name is the empty string (aka, the null string).</p>
+<p>Node scope and the local scopes created by defined resources are <strong>anonymous</strong> and cannot be directly referenced. </p>
+<h3 id="accessing-out-of-scope-variables">Accessing Out-of-Scope Variables</h3>
+<p>Variables declared in <strong>named scopes</strong> can be referenced directly from anywhere (including scopes that otherwise would not have access to them) by using their global <strong>qualified name.</strong></p>
+<p>Qualified variable names are formatted as follows, using the double-colon <a href="./lang_namespaces.html">namespace</a> separator between segments:</p>
+<p><code>$&lt;NAME OF SCOPE&gt;::&lt;NAME OF VARIABLE&gt;</code></p>
+<pre><code>  include apache::params
+  $local_copy = $apache::params::confdir
+</code></pre>
+<p>This example would set the variable <code>$local_copy</code> to the value of the <code>$confdir</code> variable from the <code>apache::params</code> class. </p>
+<blockquote>
+<p>Notes: </p>
+<ul>
+<li>Remember that top scope's name is the empty string (a.k.a, the null string). Thus, <code>$::my_variable</code> would always refer to the top-scope value of <code>$my_variable</code>, even if <code>$my_variable</code> has a different value in local scope.</li>
+<li>
+<p>Note that a class must be <a href="./lang_classes.html#declaring-a-class-with-include">declared</a> in order to access its variables; simply having the class available in your modules is insufficient. </p>
+<p>This means the availability of out-of-scope variables is <strong>parse order dependent.</strong> You should only access out-of-scope variables if the class accessing them can guarantee that the other class is already declared, usually by explicitly declaring it with <code>include</code> before trying to read its variables.</p>
+</li>
+</ul>
+</blockquote>
+<p>Variables declared in <strong>anonymous scopes</strong> can only be accessed normally and do not have global qualified names. </p>
+<h2 id="scope-lookup-rules">Scope Lookup Rules</h2>
+<p>The scope lookup rules determine when a local scope becomes the parent of another local scope.</p>
+<p>There are two different sets of scope lookup rules: <strong>static scope</strong> and <strong>dynamic scope.</strong> Puppet 2.7 uses dynamic scope, but future versions of Puppet will use static scope. To help users prepare, Puppet 2.7 will print warnings to its log file whenever a variable's value would be different under static scope. </p>
+<p>More details about the elimination of dynamic scope can be found <a href="/guides/scope_and_puppet.html">here</a>.</p>
+<h3 id="static-scope">Static Scope</h3>
+<p>In <strong>static scope,</strong> parent scopes are <strong>only</strong> assigned by <a href="./lang_classes.html#inheritance">class inheritance</a> (using the <code>inherits</code> keyword). Any <strong>derived</strong> class receives the contents of its base class in addition to the contents of node and top scope.</p>
+<p><strong>All other</strong> local scopes have no parents --- they only receive their own contents, and the contents of node scope (if applicable) and top scope.</p>
+<blockquote>
+<p>Static scope has the following characteristics:</p>
+<ul>
+<li>Scope contents are predictable and do not depend on parse order.</li>
+<li>Scope contents can be determined simply by looking at the relevant class definition(s); the place where a class or type is <em>declared</em> has no effect. (The only exception is node definitions --- if a class is declared outside a node, it does not receive the contents of node scope.)</li>
+</ul>
+</blockquote>
+<p>All future versions of Puppet will use static scope for looking up variables. Puppet 2.7 <strong>does not enforce</strong> static scope, but will log warnings when a variable lookup would violate it.</p>
+<h3 id="dynamic-scope">Dynamic Scope</h3>
+<p>In <strong>dynamic scope,</strong> parent scopes are assigned by both <strong>inheritance</strong> and <strong>declaration,</strong> with preference being given to inheritance. The full list of rules is:</p>
+<ul>
+<li>Each scope has only one parent, but may have an unlimited chain of grandparents, and receives the merged contents of all of them (with nearer ancestors overriding more distant ones).</li>
+<li>The parent of a derived class is its base class.</li>
+<li>The parent of any other class or defined resource is the <strong>first</strong> scope in which it was declared. </li>
+<li>When you declare a derived class whose base class <em>hasn't</em> already been declared, the base class is immediately declared in the current scope, and its parent assigned accordingly. This effectively "inserts" the base class between the derived class and the current scope. (If the base class <em>has</em> already been declared elsewhere, its existing parent scope is not changed.)</li>
+</ul>
+<blockquote>
+<p>Dynamic scope has the following characteristics:</p>
+<ul>
+<li>A scope's parent cannot be identified by looking at the definition of a class --- you must examine every place where the class or resource may have been declared.</li>
+<li>In some cases, you can only determine a scope's contents by executing the code. </li>
+<li>Since classes may be declared multiple times with the <code>include</code> function, the contents of a given scope are parse-order dependent, and may vary between different runs of identical code. This is less of a danger in Puppet 2.7 than in previous versions, as relative resource ordering is now deterministic, but can still cause problems when running on similar-but-not-identical nodes. </li>
+</ul>
+</blockquote>
+<p>If used simply, dynamic scope will usually yield simple results; in fact, it can emulate static scope. However, combining classes that declare classes, class inheritance, and insufficiently unique variable names can result in erratic behavior. Adding node inheritance to that mix can make the confusion an order of magnitude worse. See <a href="/guides/scope_and_puppet.html">"Scope and Puppet"</a> for historical context and for better solutions to deal with per-node data.</p>
+<h2 id="messy-under-the-hood-details">Messy Under-the-Hood Details</h2>
+<ul>
+<li>Node scope only exists if there is at least one node definition in the site manifest (or one has been <a href="./lang_import.html">imported</a> into it). If no node definitions exist, then ENC classes get declared at top scope. </li>
+<li>Although top scope and node scope are described above as being special scopes, they are actually implemented as part of the chain of parent scopes, with node scope being a child of top scope and the parent of any classes declared inside the node definition. However, since the move to static scoping causes them to behave as little islands of dynamic scoping in a statically scoped world, it's simpler to think of them as special cases.</li>
+<li>If you ignore best practices and use node <a href="./lang_classes.html#inheritance">inheritance</a>, the rules of parent scope assignment treat node definitions like classes; that is, the base node becomes the parent scope of the derived node, and normal dynamic scoping will apply to the classes declared in each of the two definitions. Note that this will usually yield the opposite result of whatever you are trying to achieve. </li>
+</ul>
+<!-- dash-puppet-docset footer, layout: default -->
+              <blockquote><p style="font-size: 1.3em; text-align: center;"><a href="#content">↑ Back to top</a></p></blockquote>
+            </div>
+          </div>
+        </div>
+      </section>
+<div id="copyright">
+      <div class="site-width">
+        &copy; 2011 <a href="http://www.puppetlabs.com/" title="Puppet Labs">Puppet Labs</a>
+        <span class="vcard">
+         <span class="org"></span>
+         <a class="email" href="mailto:info@puppetlabs.com">info@puppetlabs.com</a>
+
+          <span class="adr">
+           <span class="street-address">926 NW 13th Avenue #210</span>
+           /
+           <span class="locality">Portland</span>,
+           <span class="region">OR</span>
+           <span class="postal-code">97209</span>
+
+          </span>
+
+         <span class="tel">1-877-575-9775</span>
+        </span>
+      </div>
+    </div>
+  </body>
+</html>
+</body>
+</html>

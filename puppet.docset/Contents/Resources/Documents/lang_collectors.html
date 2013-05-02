@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en-US">
+<head>
+  	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  	<title>Language: Resource Collectors - Documentation - Puppet Labs</title>     
+    <meta name="keywords" content="Puppet, puppet labs, reductive labs, open source, system administrator, ruby, data center, automation, support" />
+    <link rel="canonical" href="http://docs.puppetlabs.com/lang_collectors.html" />
+    <link rel="stylesheet" type="text/css" href="./stylesheets/style.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="./stylesheets/syntax.css" media="screen"> <!-- index -->
+</head>
+
+<body id="puppetlabsdocs" class="docs">
+<section id="content">
+  <div class="site-width">
+    <div class="primary-secondary-content">
+      <div class="primary-content">
+      <!-- dash-puppet-docset header, layout: default -->
+<h2 id="docset-header">Puppet Language: Resource Collectors <span class="version">2.7.21</span></h2>
+
+<p>Resource collectors (AKA the spaceship operator) select a group of resources by searching the attributes of every resource in the <a href="./lang_summary.html#compilation-and-catalogs">catalog</a>. This search is parse-order independent (that is, it even includes resources which haven't yet been declared at the time the collector is written). Collectors realize <a href="./lang_virtual.html">virtual resources</a>, can be used in <a href="./lang_relationships.html#chaining-arrows">chaining statements</a>, and can override resource attributes.</p>
+<p>Collectors have an irregular syntax that lets them function as both a statement and a value.</p>
+<h2 id="syntax">Syntax</h2>
+<pre><code>  User &lt;| title == 'luke' |&gt; # Will collect a single user resource whose title is 'luke'
+  User &lt;| groups == 'admin' |&gt; # Will collect any user resource whose list of supplemental groups includes 'admin'
+  Yumrepo['custom_packages'] -&gt; Package &lt;| tag == 'custom' |&gt; # Will create an order relationship with several package resources
+</code></pre>
+<p>The general form of a resource collector is:</p>
+<ul>
+<li>The resource type, capitalized</li>
+<li><code>&lt;|</code> --- An opening angle bracket (less-than sign) and pipe character</li>
+<li>Optionally, a search expression (<a href="#search-expressions">see below</a>)</li>
+<li><code>|&gt;</code> --- A pipe character and closing angle bracket (greater-than sign)</li>
+</ul>
+<p>Note that exported resource collectors have a slightly different syntax; <a href="#exported-resource-collectors">see below</a>.</p>
+<h3 id="search-expressions">Search Expressions</h3>
+<p>Collectors can search the values of resource titles and attributes using a special expression syntax. This resembles the normal syntax for <a href="./lang_expressions.html">Puppet expressions</a>, but is not the same.</p>
+<blockquote>
+<p>Note: Collectors can only search on attributes which are present in the manifests and cannot read the state of the target system. For example, the collector <code>Package &lt;| provider == yum |&gt;</code> would only collect packages whose <code>provider</code> attribute had been <em>explicitly set</em> to <code>yum</code> in the manifests. It would not match any packages that would default to the <code>yum</code> provider based on the state of the target system.</p>
+</blockquote>
+<p>A collector with an empty search expression will match <strong>every</strong> resource of the specified type.</p>
+<p>Parentheses may be used to improve readability. You can create arbitrarily complex expressions using the following four operators:</p>
+<ul>
+<li><a href="#equality-search"><code>==</code></a></li>
+<li><a href="#non-equality-search"><code>!=</code></a></li>
+<li><a href="#and"><code>and</code></a></li>
+<li><a href="#or"><code>or</code></a></li>
+</ul>
+<h4 id="equality-search"><code>==</code> (equality search)</h4>
+<p>This operator is non-transitive: </p>
+<ul>
+<li>The left operand (attribute) must be the name of a <a href="./lang_resources.html#attributes">resource attribute</a> or the word <code>title</code> (which searches on the resource's title).</li>
+<li>The right operand (search key) must be a <a href="./lang_datatypes.html#strings">string</a>, <a href="./lang_datatypes.html#booleans">boolean</a>, <a href="./lang_datatypes.html#numbers">number</a>, <a href="./lang_datatypes.html#resource-references">resource reference</a>, or <a href="./lang_datatypes.html#undef">undef</a>. The behavior of arrays and hashes in the right operand is <strong>undefined</strong> in this version (2.7) of Puppet.</li>
+</ul>
+<p>For a given resource, this operator will <strong>match</strong> if the value of the attribute (or one of the value's members, if the value is an array) is identical to the search key. </p>
+<h4 id="non-equality-search"><code>!=</code> (non-equality search)</h4>
+<p>This operator is non-transitive: </p>
+<ul>
+<li>The left operand (attribute) must be the name of a <a href="./lang_resources.html#attributes">resource attribute</a> or the word <code>title</code> (which searches on the resource's title).</li>
+<li>The right operand (search key) must be a <a href="./lang_datatypes.html#strings">string</a>, <a href="./lang_datatypes.html#booleans">boolean</a>, <a href="./lang_datatypes.html#numbers">number</a>, <a href="./lang_datatypes.html#resource-references">resource reference</a>, or <a href="./lang_datatypes.html#undef">undef</a>. The behavior of arrays and hashes in the right operand is <strong>undefined</strong> in this version (2.7) of Puppet.</li>
+</ul>
+<p>For a given resource, this operator will <strong>match</strong> if the value of the attribute is <strong>not</strong> identical to the search key. </p>
+<blockquote>
+<p>Note: This operator will always match if the attribute's value is an array. This behavior may be undefined. </p>
+</blockquote>
+<h4 id="and"><code>and</code></h4>
+<p>Both operands must be valid search expressions.</p>
+<p>For a given resource, this operator will <strong>match</strong> if <strong>both</strong> of the operands would match for that resource.</p>
+<h4 id="or"><code>or</code></h4>
+<p>Both operands must be valid search expressions.</p>
+<p>For a given resource, this operator will <strong>match</strong> if <strong>either</strong> of the operands would match for that resource.</p>
+<h2 id="location">Location</h2>
+<p>Resource collectors may be used as independent statements, as the operand of a <a href="./lang_relationships.html#chaining-arrows">chaining statement</a>, or in a <a href="./lang_resources.html#amending-attributes-with-a-collector">collector attribute block</a> for amending resource attributes.</p>
+<p>Notably, collectors <strong>cannot</strong> be used as the value of a resource attribute, the argument of a function, or the operand of an expression. </p>
+<h2 id="behavior">Behavior</h2>
+<p>A resource collector will <strong>always</strong> <a href="./lang_virtual.html#syntax">realize</a> any <a href="./lang_virtual.html">virtual resources</a> that match its search expression. Note that empty search expressions match every resource of the specified type.</p>
+<p>In addition to realizing, collectors can function as a value in two places:</p>
+<ul>
+<li>When used in a <a href="./lang_relationships.html#chaining-arrows">chaining statement</a>, a collector will act as a proxy for every resource (virtual or non) that matches its search expression.</li>
+<li>When given a block of attributes and values, a collector will <a href="./lang_resources.html#amending-attributes-with-a-collector">set and override</a> those attributes for every resource (virtual or not) that matches its search expression.</li>
+</ul>
+<p>Note again that collectors used as values will also realize any matching virtual resources. If you use virtualized resources, you must use care when chaining collectors or using them for overrides. </p>
+<h2 id="exported-resource-collectors">Exported Resource Collectors</h2>
+<p>An <strong>exported resource collector</strong> uses a modified syntax that realizes <a href="./lang_exported.html">exported resources</a>.</p>
+<h3 id="syntax_1">Syntax</h3>
+<p>Exported resource collectors are identical to collectors, except that their angle brackets are doubled. </p>
+<pre><code>  Nagios_service &lt;&lt;| |&gt;&gt; # realize all exported nagios_service resources
+</code></pre>
+<p>The general form of an exported resource collector is:</p>
+<ul>
+<li>The resource type, capitalized</li>
+<li><code>&lt;&lt;|</code> --- Two opening angle brackets (less-than signs) and a pipe character</li>
+<li>Optionally, a search expression (<a href="#search-expressions">see above</a>)</li>
+<li><code>|&gt;&gt;</code> --- A pipe character and two closing angle brackets (greater-than signs)</li>
+</ul>
+<h3 id="behavior_1">Behavior</h3>
+<p>Exported resource collectors exist only to import resources that were published by other nodes. To use them, you need to have resource stashing (storeconfigs) enabled. See <a href="./lang_exported.html">Exported Resources</a> for more details. To enable resource stashing, follow the <a href="/puppetdb/latest/install_via_module.html">installation instructions</a> and <a href="/puppetdb/latest/connect_puppet_master.html">Puppet configuration instructions</a> in <a href="/puppetdb/">the PuppetDB manual</a>.</p>
+<p>Like normal collectors, exported resource collectors can be used with attribute blocks and chaining statements.</p>
+<!-- dash-puppet-docset footer, layout: default -->
+              <blockquote><p style="font-size: 1.3em; text-align: center;"><a href="#content">↑ Back to top</a></p></blockquote>
+            </div>
+          </div>
+        </div>
+      </section>
+<div id="copyright">
+      <div class="site-width">
+        &copy; 2011 <a href="http://www.puppetlabs.com/" title="Puppet Labs">Puppet Labs</a>
+        <span class="vcard">
+         <span class="org"></span>
+         <a class="email" href="mailto:info@puppetlabs.com">info@puppetlabs.com</a>
+
+          <span class="adr">
+           <span class="street-address">926 NW 13th Avenue #210</span>
+           /
+           <span class="locality">Portland</span>,
+           <span class="region">OR</span>
+           <span class="postal-code">97209</span>
+
+          </span>
+
+         <span class="tel">1-877-575-9775</span>
+        </span>
+      </div>
+    </div>
+  </body>
+</html>
+</body>
+</html>

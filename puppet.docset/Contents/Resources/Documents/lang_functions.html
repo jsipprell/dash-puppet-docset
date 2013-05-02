@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en-US">
+<head>
+  	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  	<title>Language: Functions - Documentation - Puppet Labs</title>     
+    <meta name="keywords" content="Puppet, puppet labs, reductive labs, open source, system administrator, ruby, data center, automation, support" />
+    <link rel="canonical" href="http://docs.puppetlabs.com/lang_functions.html" />
+    <link rel="stylesheet" type="text/css" href="./stylesheets/style.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="./stylesheets/syntax.css" media="screen"> <!-- index -->
+</head>
+
+<body id="puppetlabsdocs" class="docs">
+<section id="content">
+  <div class="site-width">
+    <div class="primary-secondary-content">
+      <div class="primary-content">
+      <!-- dash-puppet-docset header, layout: default -->
+<h2 id="docset-header">Puppet Language: Functions <span class="version">2.7.21</span></h2>
+
+<blockquote>
+<ul>
+<li><a href="/references/latest/function.html">See the Function Reference for complete info about Puppet's built-in functions.</a></li>
+</ul>
+</blockquote>
+<p><strong>Functions</strong> are pre-defined chunks of Ruby code which run during <a href="./lang_summary.html#compilation">compilation</a>. Most functions either <strong>return values</strong> or <strong>modify the <a href="./lang_summary.html#compilation-and-catalogs">catalog</a>.</strong></p>
+<p>Puppet includes several built-in functions, and more are available in modules on the <a href="http://forge.puppetlabs.com">Puppet Forge</a>, particularly the <a href="http://forge.puppetlabs.com/puppetlabs/stdlib">puppetlabs-stdlib</a> module. You can also write <a href="/guides/custom_functions.html">custom functions</a> and put them in your own modules. </p>
+<h2 id="syntax">Syntax</h2>
+<pre><code>  file {'/etc/ntp.conf':
+    ensure  =&gt; file,
+    content =&gt; template('ntp/ntp.conf'),
+  }
+
+  include apache2
+
+  if str2bool($is_virtual) {
+    include ntp::disabled
+  }
+  else {
+    include ntp
+  }
+  # str2bool is part of the puppetlabs-stdlib module; install it with
+  # sudo puppet module install puppetlabs-stdlib
+</code></pre>
+<p>In the examples above, <code>template</code>, <code>include</code>, and <code>str2bool</code> are all functions. <code>template</code> and <code>str2bool</code> return values, and <code>include</code> modifies the catalog by causing a class to be applied. </p>
+<p>The general form of a function call is:</p>
+<ul>
+<li>The name of the function, as a bare word</li>
+<li>An optional opening parenthesis</li>
+<li>Any number of <strong>arguments,</strong> separated with commas; the number and type of arguments are controlled by the function</li>
+<li>A closing parenthesis, if an open parenthesis was used</li>
+</ul>
+<h2 id="behavior">Behavior</h2>
+<p>There are two types of Puppet functions:</p>
+<ul>
+<li><strong>Rvalues</strong> return values and can be used anywhere a normal value is expected. (This includes resource attributes, variable assignments, conditions, selector values, the arguments of other functions, etc.) These values can come from a variety of places; the <code>template</code> function reads and evaluates a template to return a string, and stdlib's <code>str2bool</code> and <code>num2bool</code> functions convert values from one <a href="./lang_datatypes.html">data type</a> to another.</li>
+<li><strong>Statements</strong> should stand alone and do some form of work, which can be anything from logging a message (like <code>notice</code>), to modifying the catalog in progress (like <code>include</code>), to causing the entire compilation to fail (<code>fail</code>). </li>
+</ul>
+<p>All functions run during <a href="./lang_summary.html#compilation">compilation</a>, which means they can only access the commands and data available on the puppet master. To perform tasks on, or collect data from, an agent node, you must use a <a href="./lang_resources.html">resource</a> or a <a href="/guides/custom_facts.html">custom fact</a>. </p>
+<h3 id="arguments">Arguments</h3>
+<p>Each function defines how many arguments it takes and what <a href="./lang_datatypes.html">data types</a> it expects those arguments to be. These should be documented in the function's <code>:doc</code> string, which can be extracted and included in the <a href="/references/latest/function.html">function reference</a>.</p>
+<p>Functions may accept any of Puppet's standard <a href="./lang_datatypes.html">data types</a>. The values passed to the function's Ruby code will be converted to Ruby objects as follows:</p>
+<table>
+<thead>
+<tr>
+<th>Puppet type</th>
+<th>Ruby type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>boolean</td>
+<td>boolean</td>
+</tr>
+<tr>
+<td>undef</td>
+<td>the empty string</td>
+</tr>
+<tr>
+<td>string</td>
+<td>string</td>
+</tr>
+<tr>
+<td>resource reference</td>
+<td><code>Puppet::Resource</code></td>
+</tr>
+<tr>
+<td>number</td>
+<td>string</td>
+</tr>
+<tr>
+<td>array</td>
+<td>array</td>
+</tr>
+<tr>
+<td>hash</td>
+<td>hash</td>
+</tr>
+</tbody>
+</table>
+<!-- dash-puppet-docset footer, layout: default -->
+              <blockquote><p style="font-size: 1.3em; text-align: center;"><a href="#content">↑ Back to top</a></p></blockquote>
+            </div>
+          </div>
+        </div>
+      </section>
+<div id="copyright">
+      <div class="site-width">
+        &copy; 2011 <a href="http://www.puppetlabs.com/" title="Puppet Labs">Puppet Labs</a>
+        <span class="vcard">
+         <span class="org"></span>
+         <a class="email" href="mailto:info@puppetlabs.com">info@puppetlabs.com</a>
+
+          <span class="adr">
+           <span class="street-address">926 NW 13th Avenue #210</span>
+           /
+           <span class="locality">Portland</span>,
+           <span class="region">OR</span>
+           <span class="postal-code">97209</span>
+
+          </span>
+
+         <span class="tel">1-877-575-9775</span>
+        </span>
+      </div>
+    </div>
+  </body>
+</html>
+</body>
+</html>

@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en-US">
+<head>
+  	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  	<title>Language: Visual Index - Documentation - Puppet Labs</title>     
+    <meta name="keywords" content="Puppet, puppet labs, reductive labs, open source, system administrator, ruby, data center, automation, support" />
+    <link rel="canonical" href="http://docs.puppetlabs.com/lang_visual_index.html" />
+    <link rel="stylesheet" type="text/css" href="./stylesheets/style.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="./stylesheets/syntax.css" media="screen"> <!-- index -->
+</head>
+
+<body id="puppetlabsdocs" class="docs">
+<section id="content">
+  <div class="site-width">
+    <div class="primary-secondary-content">
+      <div class="primary-content">
+      <!-- dash-puppet-docset header, layout: default -->
+<h2 id="docset-header">Puppet Language: Visual Index <span class="version">2.7.21</span></h2>
+
+<p>This page can help you find syntax elements when you can't remember their names.</p>
+<pre><code>  file {'ntp.conf':
+    path    =&gt; '/etc/ntp.conf',
+    ensure  =&gt; file,
+    content =&gt; template('ntp/ntp.conf'),
+    owner   =&gt; root,
+    mode    =&gt; 0644,
+  }
+</code></pre>
+<p>↑ A <a href="./lang_resources.html">resource declaration</a>.</p>
+<ul>
+<li><code>file</code>: The <a href="./lang_resources.html#type">resource type</a></li>
+<li><code>ntp.conf</code>: The <a href="./lang_resources.html#title">title</a></li>
+<li><code>path</code>: An <a href="./lang_resources.html#attributes">attribute</a></li>
+<li><code>'/etc/ntp.conf'</code>: A <a href="./lang_resources.html#attributes">value</a>; in this case, a <a href="./lang_datatypes.html#strings">string</a></li>
+<li>
+<p><code>template('ntp/ntp.conf')</code>: A <a href="./lang_functions.html">function</a> call that <a href="./lang_functions.html#behavior">returns a value</a>; in this case, the <a href="/guides/templating.html"><code>template</code></a> function, with the name of a template in a <a href="modules_fundamentals.html">module</a> as its <a href="./lang_functions.html#arguments">argument</a></p>
+<pre><code>package {'ntp':
+  ensure =&gt; installed,
+  before =&gt; File['ntp.conf'],
+}
+service {'ntpd': 
+  ensure    =&gt; running,
+  subscribe =&gt; File['ntp.conf'],
+}
+</code></pre>
+</li>
+</ul>
+<p>↑ Two resources using the <code>before</code> and <code>subscribe</code> <a href="./lang_relationships.html#relationship-metaparameters">relationship metaparameters</a> (which accept <a href="./lang_datatypes.html#resource-references">resource references</a>).</p>
+<pre><code>  Package['ntp'] -&gt; File['ntp.conf'] ~&gt; Service['ntpd']
+</code></pre>
+<p>↑ <a href="./lang_relationships.html#chaining-arrows">Chaining arrows</a> forming relationships between three resources, using <a href="./lang_datatypes.html#resource-references">resource references</a>.</p>
+<pre><code>  $package_list = ['ntp', 'apache2', 'vim-nox', 'wget']
+</code></pre>
+<p>↑ A <a href="./lang_variables.html">variable</a> being assigned an <a href="./lang_datatypes.html#arrays">array</a> value.</p>
+<pre><code>  $myhash = { key =&gt; { subkey =&gt; 'b' }}
+</code></pre>
+<p>↑ A <a href="./lang_variables.html">variable</a> being assigned a <a href="./lang_datatypes.html#hashes">hash</a> value.</p>
+<pre><code>  ...
+  content =&gt; "Managed by puppet master version ${serverversion}"
+</code></pre>
+<p>↑ A master-provided <a href="./lang_variables.html#facts-and-built-in-variables">built-in variable</a> being <a href="./lang_datatypes.html#variable-interpolation">interpolated into a double-quoted string</a> (with optional curly braces).</p>
+<pre><code>  class ntp {
+    package {'ntp':
+      ...
+    }
+    ...
+  }
+</code></pre>
+<p>↑ A <a href="./lang_classes.html#defining-a-class">class definition</a>, which makes a class avaliable for later use.</p>
+<pre><code>  include ntp
+  require ntp
+  class {'ntp':}
+</code></pre>
+<p>↑ <a href="./lang_classes.html#defining-a-class">Declaring a class</a> in three different ways: with the <code>include</code> function, with the <code>require</code> function, and with the resource-like syntax. Declaring a class causes the resources in it to be managed. </p>
+<pre><code>  define apache::vhost ($port, $docroot, $servername = $title, $vhost_name = '*') {
+    include apache
+    include apache::params
+    $vhost_dir = $apache::params::vhost_dir
+    file { "${vhost_dir}/${servername}.conf":
+        content =&gt; template('apache/vhost-default.conf.erb'), 
+        owner   =&gt; 'www',
+        group   =&gt; 'www',
+        mode    =&gt; '644',
+        require =&gt; Package['httpd'],
+        notify  =&gt; Service['httpd'],
+    }
+  }
+</code></pre>
+<p>↑ A <a href="./lang_defined_types.html">defined type</a>, which makes a new resource type available. Note that the name of the type has two <a href="./lang_namespaces.html">namespace segments</a>.</p>
+<pre><code>  apache::vhost {'homepages':
+    port    =&gt; 8081,
+    docroot =&gt; '/var/www-testhost',
+  }
+</code></pre>
+<p>↑ Declaring a <a href="./lang_defined_types.html#declaring-an-instance">defined resource</a> (or "instance") of the type defined above. </p>
+<pre><code>  Apache::Vhost['homepages']
+</code></pre>
+<p>↑ A <a href="./lang_datatypes.html#resource-references">resource reference</a> to the defined resource declared above. Note that every <a href="./lang_namespaces.html">namespace segment</a> must be capitalized.</p>
+<pre><code>  node 'www1.example.com' {
+    include common
+    include apache
+    include squid
+  }
+</code></pre>
+<p>↑ A <a href="./lang_node_definitions.html">node definition</a>.</p>
+<pre><code>  node /^www\d+$/ {
+    include common
+  }
+</code></pre>
+<p>↑ A <a href="./lang_node_definitions.html#regular-expression-names">regular expression node definition</a>.</p>
+<pre><code>  import nodes/*.pp
+</code></pre>
+<p>↑ An <a href="./lang_import.html">import statement</a>. Should be avoided in all but a few circumstances.</p>
+<pre><code>  # comment
+  /* comment */
+</code></pre>
+<p>↑ Two <a href="./lang_comments.html">comments</a>.</p>
+<pre><code>  if $is_virtual == 'true' {
+    warn( 'Tried to include class ntp on virtual machine; this node may be misclassified.' )
+  }
+  elsif $operatingsystem == 'Darwin' {
+    warn ( 'This NTP module does not yet work on our Mac laptops.' )
+  else {
+    include ntp
+  }
+</code></pre>
+<p>↑ An <a href="./lang_conditional.html#if-statements">if statement</a>, whose conditions are <a href="./lang_expressions.html">expressions</a> that use agent-provided <a href="./lang_variables.html#facts">facts</a>.</p>
+<pre><code>  if $hostname =~ /^www(\d+)\./ {
+    notify { "Welcome web server #$1": }
+  }
+</code></pre>
+<p>↑ An <a href="./lang_conditional.html#if-statements">if statement</a> using a <a href="./lang_datatypes.html#regular-expressions">regular expression</a> and the <a href="./lang_expressions.html#regex-match">regex match operator</a>. </p>
+<pre><code>  if 'www' in $hostname {
+    ...
+  }
+</code></pre>
+<p>↑ An <a href="./lang_conditional.html#if-statements">if statement</a> using an <a href="./lang_expressions.html#in"><code>in</code> expression</a></p>
+<pre><code>  case $operatingsystem {
+    'Solaris':          { include role::solaris }
+    'RedHat', 'CentOS': { include role::redhat  }
+    /^(Debian|Ubuntu)$/:{ include role::debian  }
+    default:            { include role::generic }
+  }
+</code></pre>
+<p>↑ A <a href="./lang_conditional.html#case-statements">case statement</a>.</p>
+<pre><code>  $rootgroup = $osfamily ? {
+      'Solaris'          =&gt; 'wheel',
+      /(Darwin|FreeBSD)/ =&gt; 'wheel',
+      default            =&gt; 'root',
+  }
+</code></pre>
+<p>↑ A <a href="./lang_conditional.html#selectors">selector statement</a> being used to set the value of the <code>$rootgroup</code> <a href="./lang_variables.html">variable</a>.</p>
+<pre><code>  User &lt;| groups == 'admin' |&gt;
+</code></pre>
+<p>↑ A <a href="./lang_collectors.html">resource collector</a>, sometimes called the "spaceship operator."</p>
+<pre><code>  Concat::Fragment &lt;&lt;| tag == "bacula-storage-dir-${bacula_director}" |&gt;&gt;
+</code></pre>
+<p>↑ An <a href="./lang_collectors.html#exported-resource-collectors">exported resource collector</a>, which works with <a href="./lang_exported.html">exported resources</a></p>
+<pre><code>  Exec { 
+    path        =&gt; '/usr/bin:/bin:/usr/sbin:/sbin',
+    environment =&gt; 'RUBYLIB=/opt/puppet/lib/ruby/site_ruby/1.8/',
+    logoutput   =&gt; true,
+    timeout     =&gt; 180,
+  }
+</code></pre>
+<p>↑ A <a href="./lang_defaults.html">resource default</a> for resources of the <code>exec</code> type.</p>
+<pre><code>  Exec['update_migrations'] {
+    environment =&gt; 'RUBYLIB=/usr/lib/ruby/site_ruby/1.8/',
+  }
+</code></pre>
+<p>↑ A <a href="./lang_classes.html#overriding-resource-attributes">resource override</a>, which will only work in an <a href="./lang_classes.html#inheritance">inherited class</a>.</p>
+<pre><code>  Exec &lt;| title == 'update_migrations' |&gt; {
+    environment =&gt; 'RUBYLIB=/usr/lib/ruby/site_ruby/1.8/',
+  }
+</code></pre>
+<p>↑ A <a href="./lang_resources.html#amending-attributes-with-a-collector">resource override using a collector</a>, which will work anywhere. Dangerous, but very useful in rare cases.</p>
+<pre><code>  @user {'deploy':
+    uid     =&gt; 2004,
+    comment =&gt; 'Deployment User',
+    group   =&gt; www-data,
+    groups  =&gt; ["enterprise"],
+    tag     =&gt; [deploy, web],
+  }
+</code></pre>
+<p>↑ A <a href="./lang_virtual.html">virtual resource</a>.</p>
+<pre><code>  @@nagios_service { "check_zfs${hostname}":
+    use                 =&gt; 'generic-service',
+    host_name           =&gt; "$fqdn",
+    check_command       =&gt; 'check_nrpe_1arg!check_zfs',
+    service_description =&gt; "check_zfs${hostname}",
+    target              =&gt; '/etc/nagios3/conf.d/nagios_service.cfg',
+    notify              =&gt; Service[$nagios::params::nagios_service],
+  }
+</code></pre>
+<p>↑ An <a href="./lang_exported.html">exported resource</a> declaration.</p>
+<!-- dash-puppet-docset footer, layout: default -->
+              <blockquote><p style="font-size: 1.3em; text-align: center;"><a href="#content">↑ Back to top</a></p></blockquote>
+            </div>
+          </div>
+        </div>
+      </section>
+<div id="copyright">
+      <div class="site-width">
+        &copy; 2011 <a href="http://www.puppetlabs.com/" title="Puppet Labs">Puppet Labs</a>
+        <span class="vcard">
+         <span class="org"></span>
+         <a class="email" href="mailto:info@puppetlabs.com">info@puppetlabs.com</a>
+
+          <span class="adr">
+           <span class="street-address">926 NW 13th Avenue #210</span>
+           /
+           <span class="locality">Portland</span>,
+           <span class="region">OR</span>
+           <span class="postal-code">97209</span>
+
+          </span>
+
+         <span class="tel">1-877-575-9775</span>
+        </span>
+      </div>
+    </div>
+  </body>
+</html>
+</body>
+</html>

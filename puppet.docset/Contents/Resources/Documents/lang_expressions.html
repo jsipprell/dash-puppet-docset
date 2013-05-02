@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en-US">
+<head>
+  	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  	<title>Language: Expressions - Documentation - Puppet Labs</title>     
+    <meta name="keywords" content="Puppet, puppet labs, reductive labs, open source, system administrator, ruby, data center, automation, support" />
+    <link rel="canonical" href="http://docs.puppetlabs.com/lang_expressions.html" />
+    <link rel="stylesheet" type="text/css" href="./stylesheets/style.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="./stylesheets/syntax.css" media="screen"> <!-- index -->
+</head>
+
+<body id="puppetlabsdocs" class="docs">
+<section id="content">
+  <div class="site-width">
+    <div class="primary-secondary-content">
+      <div class="primary-content">
+      <!-- dash-puppet-docset header, layout: default -->
+<h2 id="docset-header">Puppet Language: Expressions <span class="version">2.7.21</span></h2>
+
+<p><strong>Expressions</strong> resolve to values and can be used in <strong>most</strong> of the places where values of the <a href="./lang_datatypes.html">standard data types</a> are required.  Expressions can be compounded with other expressions and the entire combined expression will resolve to a single value. </p>
+<p>Most expressions resolve to <a href="./lang_datatypes.html#booleans">boolean</a> values. They are particularly useful as conditions in <a href="./lang_conditional.html">conditional statements</a>.</p>
+<h2 id="location">Location</h2>
+<p>Expressions can be used in the following places:</p>
+<ul>
+<li>The operand of another expression</li>
+<li>The condition of an <a href="./lang_conditional.html#if-statements">if statement</a></li>
+<li>The control expression of a <a href="./lang_conditional.html#case-statements">case statement</a></li>
+<li>The assignment of a variable</li>
+<li>The value of a resource attribute</li>
+<li>The argument(s) of a <a href="./lang_functions.html">function</a> call</li>
+</ul>
+<p>They cannot be used in selectors or as resource titles.</p>
+<h2 id="syntax">Syntax</h2>
+<p>An expression consists of two <strong>operands</strong> separated by an <strong>operator;</strong> the only operator that takes one operand is <code>!</code> (not).</p>
+<pre><code>  5 &lt; 9
+  ($operatingsystem != 'Solaris')
+  $kernel in ['linux', 'solaris']
+  !str2bool($is_virtual)
+</code></pre>
+<p>In the examples above, the operators are <code>&lt;</code>, <code>!=</code>, <code>in</code>, and <code>!</code>.</p>
+<p>Optionally, expressions can be surrounded by parentheses.</p>
+<h3 id="operands">Operands</h3>
+<p>Operands in an expression may be:</p>
+<ul>
+<li>Literal values</li>
+<li><a href="./lang_variables.html">Variables</a></li>
+<li>Other expressions</li>
+<li><a href="./lang_functions.html">Function calls</a> which return values</li>
+</ul>
+<p>The <a href="./lang_datatypes.html">data type</a> of each operand is dictated by the operator. See the list of operators below for details.</p>
+<p>When creating compound expressions by using other expressions as operands, you should use parentheses for clarity:</p>
+<pre><code>  (90 &lt; 7) and ('Solaris' == 'Solaris') # resolves to false
+  (90 &lt; 7) or ('solaris' in ['linux', 'solaris']) # resolves to true
+</code></pre>
+<h2 id="order-of-operations">Order of Operations</h2>
+<p>Compound expressions are evaluated in a standard order of operations. However, parentheses will override the order of operations:</p>
+<pre><code>  # This example will resolve to 30, rather than 23.
+  notice( (7+8)*2 )
+</code></pre>
+<p>For the sake of clarity, we recommend using parentheses in all but the simplest compound expressions.</p>
+<p>The precedence of operators, from highest to lowest:</p>
+<ol>
+<li><code>!</code> (not)</li>
+<li><code>in</code></li>
+<li><code>*</code> and <code>/</code> (multiplication and division)</li>
+<li><code>-</code> and <code>+</code> (addition and subtraction)</li>
+<li><code>&lt;&lt;</code> and <code>&gt;&gt;</code> (left shift and right shift)</li>
+<li><code>==</code> and <code>!=</code> (equal and not equal)</li>
+<li><code>&gt;=</code>, <code>&lt;=</code>, <code>&gt;</code>, and <code>&lt;</code> (greater or equal, less or equal, greater than, and less than)</li>
+<li><code>and</code></li>
+<li><code>or</code></li>
+</ol>
+<h2 id="comparison-operators">Comparison Operators</h2>
+<p>Comparison operators have the following traits:</p>
+<ul>
+<li>They take operands of <strong>several data types</strong></li>
+<li>They resolve to <a href="./lang_datatypes.html#booleans"><strong>boolean</strong></a> values</li>
+</ul>
+<h3 id="equality"><code>==</code> (equality)</h3>
+<p>Resolves to <code>true</code> if the operands are equal. Accepts the following types of operands:</p>
+<ul>
+<li><a href="./lang_datatypes.html#numbers">Numbers</a> --- Tests simple equality.</li>
+<li><a href="./lang_datatypes.html#strings">Strings</a> --- Case-insensitively tests whether two strings are identical.</li>
+<li><a href="./lang_datatypes.html#arrays">Arrays</a> and <a href="./lang_datatypes.html#hashes">hashes</a> --- Tests whether two arrays or hashes are identical.</li>
+<li><a href="./lang_datatypes.html#booleans">Booleans</a> --- Tests whether two booleans are the same value.</li>
+</ul>
+<h3 id="non-equality"><code>!=</code> (non-equality)</h3>
+<p>Resolves to <code>false</code> if the operands are equal. Behaves similarly to <code>==</code>.</p>
+<h3 id="less-than"><code>&lt;</code> (less than)</h3>
+<p>Resolves to <code>true</code> if the left operand is smaller than the right operand. Accepts <a href="./lang_datatypes.html#numbers">numbers</a>.</p>
+<p>The behavior of this operator when used with strings is undefined. </p>
+<h3 id="greater-than"><code>&gt;</code> (greater than)</h3>
+<p>Resolves to <code>true</code> if the left operand is bigger than the right operand. Accepts <a href="./lang_datatypes.html#numbers">numbers</a>.</p>
+<p>The behavior of this operator when used with strings is undefined. </p>
+<h3 id="less-than-or-equal-to"><code>&lt;=</code> (less than or equal to)</h3>
+<p>Resolves to <code>true</code> if the left operand is smaller than or equal to the right operand. Accepts <a href="./lang_datatypes.html#numbers">numbers</a>.</p>
+<p>The behavior of this operator when used with strings is undefined. </p>
+<h3 id="greater-than-or-equal-to"><code>&gt;=</code> (greater than or equal to)</h3>
+<p>Resolves to <code>true</code> if the left operand is bigger than or equal to the right operand. Accepts <a href="./lang_datatypes.html#numbers">numbers</a>.</p>
+<p>The behavior of this operator when used with strings is undefined. </p>
+<h3 id="regex-match"><code>=~</code> (regex match)</h3>
+<p>This operator is <strong>non-transitive</strong> with regard to data types: it accepts a <a href="./lang_datatypes.html#strings">string</a> as the left operand and a <a href="./lang_datatypes.html#regular-expressions">regular expression</a> as the right operand.</p>
+<p>Resolves to <code>true</code> if the left operand <a href="http://www.ruby-doc.org/core/Regexp.html">matches</a> the regular expression. </p>
+<h3 id="regex-non-match"><code>!~</code> (regex non-match)</h3>
+<p>This operator is <strong>non-transitive</strong> with regard to data types: it accepts a <a href="./lang_datatypes.html#strings">string</a> as the left operand and a <a href="./lang_datatypes.html#regular-expressions">regular expression</a> as the right operand.</p>
+<p>Resolves to <code>false</code> if the left operand <a href="http://www.ruby-doc.org/core/Regexp.html">matches</a> the regular expression. </p>
+<h3 id="in"><code>in</code></h3>
+<p>Resolves to <code>true</code> if the right operand contains the left operand. This operator is <strong>case sensitive.</strong> </p>
+<p>This operator is <strong>non-transitive</strong> with regard to data types: it accepts a <a href="./lang_datatypes.html#strings">string</a> as the left operand, and the following types of right operands:</p>
+<ul>
+<li><a href="./lang_datatypes.html#strings">Strings</a> --- Tests whether the left operand is a substring of the right. </li>
+<li><a href="./lang_datatypes.html#arrays">Arrays</a> --- Tests whether one of the members of the array is identical to the left operand. </li>
+<li><a href="./lang_datatypes.html#hashes">Hashes</a> --- Tests whether the hash has a <strong>key</strong> named after the left operand. </li>
+</ul>
+<p>Examples: </p>
+<pre><code>  'eat' in 'eaten' # resolves to TRUE
+  'Eat' in 'eaten' # resolves to FALSE
+  'eat' in ['eat', 'ate', 'eating'] # resolves to TRUE
+  'eat' in { 'eat' =&gt; 'present tense', 'ate' =&gt; 'past tense'} # resolves to TRUE
+  'eat' in { 'present' =&gt; 'eat', 'past' =&gt; 'ate' } # resolves to FALSE
+</code></pre>
+<h2 id="boolean-operators">Boolean Operators</h2>
+<p>Boolean Operators have the following traits: </p>
+<ul>
+<li>They take <a href="./lang_datatypes.html#booleans"><strong>boolean</strong></a> operands; if another data type is given, it will be <a href="./lang_datatypes.html#automatic-conversion-to-boolean">automatically converted to boolean</a></li>
+<li>They resolve to <a href="./lang_datatypes.html#booleans"><strong>boolean</strong></a> values</li>
+</ul>
+<p>These expressions are most useful when creating compound expressions.</p>
+<h3 id="and"><code>and</code></h3>
+<p>Resolves to <code>true</code> if both operands are true, otherwise resolves to <code>false</code>.</p>
+<h3 id="or"><code>or</code></h3>
+<p>Resolves to <code>true</code> if either operand is true.</p>
+<h3 id="not"><code>!</code> (not)</h3>
+<p><strong>Takes one operand:</strong></p>
+<pre><code>  $my_value = true
+  notice ( !$my_value ) # Will resolve to false
+</code></pre>
+<p>Resolves to <code>true</code> if the operand is false, and <code>false</code> if the operand is true.</p>
+<h2 id="arithmetic-operators">Arithmetic Operators</h2>
+<p>Arithmetic Operators have the following traits:</p>
+<ul>
+<li>They take <a href="./lang_datatypes.html#numbers"><strong>numeric</strong></a> operands</li>
+<li>They resolve to <a href="./lang_datatypes.html#numbers"><strong>numeric</strong></a> values</li>
+</ul>
+<h3 id="addition"><code>+</code> (addition)</h3>
+<p>Resolves to the sum of the two operands.</p>
+<h3 id="-subtraction"><code>-</code> (subtraction)</h3>
+<p>Resolves to the difference of the two operands.</p>
+<h3 id="division"><code>/</code> (division)</h3>
+<p>Resolves to the quotient of the two operands. </p>
+<h3 id="multiplication"><code>*</code> (multiplication)</h3>
+<p>Resolves to the product of the two operands.</p>
+<h3 id="left-shift"><code>&lt;&lt;</code> (left shift)</h3>
+<p>Left bitwise shift: shifts the left operand by the number of places specified by the right operand. This is equivalent to rounding each operand down to the nearest integer and multiplying the left operand by 2 to the power of the right operand.</p>
+<h3 id="right-shift"><code>&gt;&gt;</code> (right shift)</h3>
+<p>Right bitwise shift: shifts the left operand by the number of places specified by the right operand. This is equivalent to rounding each operand down to the nearest integer and dividing the left operand by 2 to the power of the right operand.</p>
+<h2 id="backus-naur-form">Backus Naur Form</h2>
+<p>With the exception of the <code>in</code> operator, the available operators in Backus Naur Form are:</p>
+<pre><code>  &lt;exp&gt; ::=  &lt;exp&gt; &lt;arithop&gt; &lt;exp&gt;
+           | &lt;exp&gt; &lt;boolop&gt; &lt;exp&gt;
+           | &lt;exp&gt; &lt;compop&gt; &lt;exp&gt;
+           | &lt;exp&gt; &lt;matchop&gt; &lt;regex&gt;
+           | ! &lt;exp&gt;
+           | - &lt;exp&gt;
+           | "(" &lt;exp&gt; ")"
+           | &lt;rightvalue&gt;
+
+  &lt;arithop&gt; ::= "+" | "-" | "/" | "*" | "&lt;&lt;" | "&gt;&gt;"
+  &lt;boolop&gt;  ::= "and" | "or"
+  &lt;compop&gt;  ::= "==" | "!=" | "&gt;" | "&gt;=" | "&lt;=" | "&lt;"
+  &lt;matchop&gt;  ::= "=~" | "!~"
+
+  &lt;rightvalue&gt; ::= &lt;variable&gt; | &lt;function-call&gt; | &lt;literals&gt;
+  &lt;literals&gt; ::= &lt;float&gt; | &lt;integer&gt; | &lt;hex-integer&gt; | &lt;octal-integer&gt; | &lt;quoted-string&gt;
+  &lt;regex&gt; ::= '/regex/'
+</code></pre>
+<!-- dash-puppet-docset footer, layout: default -->
+              <blockquote><p style="font-size: 1.3em; text-align: center;"><a href="#content">↑ Back to top</a></p></blockquote>
+            </div>
+          </div>
+        </div>
+      </section>
+<div id="copyright">
+      <div class="site-width">
+        &copy; 2011 <a href="http://www.puppetlabs.com/" title="Puppet Labs">Puppet Labs</a>
+        <span class="vcard">
+         <span class="org"></span>
+         <a class="email" href="mailto:info@puppetlabs.com">info@puppetlabs.com</a>
+
+          <span class="adr">
+           <span class="street-address">926 NW 13th Avenue #210</span>
+           /
+           <span class="locality">Portland</span>,
+           <span class="region">OR</span>
+           <span class="postal-code">97209</span>
+
+          </span>
+
+         <span class="tel">1-877-575-9775</span>
+        </span>
+      </div>
+    </div>
+  </body>
+</html>
+</body>
+</html>

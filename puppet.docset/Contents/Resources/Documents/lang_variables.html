@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en-US">
+<head>
+  	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  	<title>Language: Variables - Documentation - Puppet Labs</title>     
+    <meta name="keywords" content="Puppet, puppet labs, reductive labs, open source, system administrator, ruby, data center, automation, support" />
+    <link rel="canonical" href="http://docs.puppetlabs.com/lang_variables.html" />
+    <link rel="stylesheet" type="text/css" href="./stylesheets/style.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="./stylesheets/syntax.css" media="screen"> <!-- index -->
+</head>
+
+<body id="puppetlabsdocs" class="docs">
+<section id="content">
+  <div class="site-width">
+    <div class="primary-secondary-content">
+      <div class="primary-content">
+      <!-- dash-puppet-docset header, layout: default -->
+<h2 id="docset-header">Puppet Language: Variables <span class="version">2.7.21</span></h2>
+
+<h2 id="syntax">Syntax</h2>
+<h3 id="assignment">Assignment</h3>
+<pre><code>  $content = "some content\n"
+</code></pre>
+<p>Variable names are prefixed with a <code>$</code> (dollar sign). Values are assigned to them with the <code>=</code> (equal sign) assignment operator. </p>
+<p>Any value of any of the normal (i.e. non-regex) <a href="./lang_datatypes.html">data types</a> can be assigned to a variable. Any statement that resolves to a normal value (including <a href="./lang_expressions.html">expressions</a>, <a href="./lang_functions.html">functions</a>, and other variables) can be used in place of a literal value. The variable will contain the value that the statement resolves to, rather than a reference to the statement. </p>
+<p>Variables can only be assigned using their <a href="#naming">short name</a>. That is, a given <a href="./lang_scope.html">scope</a> cannot assign values to variables in a foreign scope. </p>
+<h3 id="resolution">Resolution</h3>
+<pre><code>  file {'/tmp/testing':
+    ensure =&gt; file,
+    content =&gt; $content,
+  }
+
+  $address_array = [$address1, $address2, $address3]
+</code></pre>
+<p>The name of a variable can be used in any place where a value of its data type would be accepted, including <a href="./lang_expressions.html">expressions</a>, <a href="./lang_functions.html">functions</a>, and <a href="./lang_resources.html#syntax">resource attributes</a>. Puppet will replace the name of the variable with its value. </p>
+<h3 id="interpolation">Interpolation</h3>
+<pre><code>  $rule = "Allow * from $ipaddress"
+  file { "${homedir}/.vim":
+    ensure =&gt; directory,
+    ...
+  }
+</code></pre>
+<p>Puppet can resolve variables in <a href="./lang_datatypes.html#double-quoted-strings">double-quoted strings</a>; this is called "interpolation."</p>
+<p>Inside a double-quoted string, you can optionally surround the name of the variable (the portion after the <code>$</code>) with curly braces (<code>${var_name}</code>). This syntax helps to avoid ambiguity and allows variables to be placed directly next to non-whitespace characters. These optional curly braces are only allowed inside strings.</p>
+<h3 id="appending-assignment">Appending Assignment</h3>
+<p>When creating a local variable with the same name as a variable in <a href="./lang_scope.html">top scope, node scope, or a parent scope</a>, you can optionally append to the received value with the <code>+=</code> (plus-equals) appending assignment operator. </p>
+<pre><code>  $ssh_users = ['myself', 'someone']
+
+  class test {
+    $ssh_users += ['someone_else']
+  }
+</code></pre>
+<p>In the example above, the value of <code>$ssh_users</code> inside class <code>test</code> would be <code>['myself', 'someone', 'someone_else']</code>. </p>
+<p>The value appended with the <code>+=</code> operator <strong>must</strong> be the same <a href="./lang_datatypes.html">data type</a> as the received value. This operator can only be used with strings, arrays, and hashes:</p>
+<ul>
+<li>Strings: Will concatenate the two strings.</li>
+<li>Arrays: Will add the elements of the appended array to the end of the received array.</li>
+<li>Hashes: Will merge the two hashes.</li>
+</ul>
+<h2 id="behavior">Behavior</h2>
+<h3 id="scope">Scope</h3>
+<p>The area of code where a given variable is visible is dictated by its <a href="./lang_scope.html">scope</a>. Variables in a given scope are only available within that scope and its child scopes, and any local scope can locally override the variables it receives from its parents. </p>
+<p>See the <a href="./lang_scope.html">section on scope</a> for complete details. </p>
+<h3 id="accessing-out-of-scope-variables">Accessing Out-of-Scope Variables</h3>
+<p>You can access out-of-scope variables from named scopes by using their <a href="#naming">qualified names</a>:</p>
+<pre><code>  $vhostdir = $apache::params::vhostdir
+</code></pre>
+<p>Note that the top scope's name is the empty string. See <a href="./lang_scope.html">scope</a> for details. </p>
+<h3 id="no-reassignment">No Reassignment</h3>
+<p>Unlike most other languages, Puppet only allows a given variable to be assigned <strong>once</strong> within a given <a href="./lang_scope.html">scope</a>. You may not change the value of a variable, although you may assign a different value to the same variable name in a new scope:</p>
+<pre><code>  # scope-example.pp
+  # Run with puppet apply --certname www1.example.com scope-example.pp
+  $myvar = "Top scope value"
+  node 'www1.example.com' {
+    $myvar = "Node scope value"
+    notice( "from www1: $myvar" )
+    include myclass
+  }
+  node 'db1.example.com' {
+    notice( "from db1: $myvar" )
+    include myclass
+  }
+  class myclass {
+    $myvar = "Local scope value"
+    notice( "from myclass: $myvar" )
+  }
+</code></pre>
+<p>In the example above, <code>$myvar</code> has several different values, but only one value will apply to any given scope. </p>
+<blockquote>
+<p>Note: Due to insufficient protection of the scope object that gets passed into templates, it is possible to reassign a variable inside a template and have the new value persist in the Puppet scope after the template is evaluated. This behavior is considered a bug; <strong>do not use it.</strong> It will not be removed during the Puppet 2.7 series, but may be removed thereafter without a deprecation period.</p>
+</blockquote>
+<h3 id="parse-order-dependence">Parse-Order Dependence</h3>
+<p>Unlike <a href="./lang_resources.html">resource declarations</a>, variable assignments are parse-order dependent. This means you cannot resolve a variable before it has been assigned. </p>
+<p>This is the main way in which the Puppet language fails to be fully declarative.</p>
+<h2 id="naming">Naming</h2>
+<p>Variable names are case-sensitive and can include alphanumeric characters and underscores. </p>
+<p>Qualified variable names are prefixed with the name of their scope and the <code>::</code> (double colon) namespace separator. (For example, the <code>$vhostdir</code> variable from the <code>apache::params</code> class would be <code>$apache::params::vhostdir</code>.)</p>
+<p><a href="./lang_reserved.html#variables">See the section on acceptable characters in variable names</a> for more details. Additionally, <a href="./lang_reserved.html#reserved-variable-names">several variable names are reserved</a>.</p>
+<h2 id="facts-and-built-in-variables">Facts and Built-In Variables</h2>
+<p>Puppet provides several built-in <a href="./lang_scope.html#top-scope">top-scope</a> variables, which you can rely on in your own manifests.</p>
+<h3 id="facts">Facts</h3>
+<p>Each node submits a very large number of <a href="/facter/latest/core_facts.html">facts</a> (as discovered by <a href="/facter">Facter</a>) when requesting its <a href="./lang_summary.html#compilation-and-catalogs">catalog</a>, and all of them are available as top-scope variables in your manifests. In addition to the built-in facts, you can create and distribute custom facts as plugins. </p>
+<ul>
+<li><a href="/facter/latest/core_facts.html">See here for a complete list of built-in facts</a>.</li>
+<li><a href="/guides/custom_facts.html">See here for a guide to writing custom facts</a>.</li>
+<li>Run <code>facter -p</code> on one of your nodes to get a complete report of the facts that node will report to the master.</li>
+</ul>
+<h3 id="agent-set-variables">Agent-Set Variables</h3>
+<p>Puppet agent sets several additional variables for a node which are available when compiling that node's catalog:</p>
+<ul>
+<li><code>$environment</code> --- the node's current <a href="/guides/environment.html">environment</a>.</li>
+<li><code>$clientcert</code> --- the node's certname setting.</li>
+<li><code>$clientversion</code> --- the current version of puppet agent.</li>
+</ul>
+<h3 id="master-set-variables">Master-Set Variables</h3>
+<p>These variables are set by the puppet master and are most useful when managing Puppet with Puppet. (For example, managing puppet.conf with a template.)</p>
+<ul>
+<li><code>$servername</code> --- the puppet master's fully-qualified domain name. (Note that this information is gathered from the puppet master by Facter, rather than read from the config files; even if the master's certname is set to something other than its fully-qualified domain name, this variable will still contain the server's fqdn.)</li>
+<li><code>$serverip</code> --- the puppet master's IP address.</li>
+<li><code>$serverversion</code> --- the current version of puppet on the puppet master.</li>
+<li><code>$settings::&lt;name of setting&gt;</code> --- the value of any of the master's <a href="/references/2.7.latest/configuration.html">configuration settings</a>. This is implemented as a special namespace and these variables must be referred to by their qualified names. Note that, other than <code>$environment</code>, the agent node's settings are <strong>not</strong> available in manifests. If you wish to expose them to the master in this version of Puppet (2.7), you will have to create a custom fact.</li>
+</ul>
+<h3 id="parser-set-variables">Parser-Set Variables</h3>
+<p>These variables are set in every <a href="./lang_scope.html">local scope</a> by the parser during compilation. These are mostly useful when implementing complex <a href="./lang_defined_types.html">defined types</a>. </p>
+<ul>
+<li><code>$module_name</code> --- the name of the module that contains the current class or defined type. </li>
+<li><code>$caller_module_name</code> --- the name of the module in which the <strong>specific instance</strong> of the surrounding defined type was declared. This is only useful when creating versatile defined types which will be re-used by several modules. </li>
+</ul>
+<!-- dash-puppet-docset footer, layout: default -->
+              <blockquote><p style="font-size: 1.3em; text-align: center;"><a href="#content">↑ Back to top</a></p></blockquote>
+            </div>
+          </div>
+        </div>
+      </section>
+<div id="copyright">
+      <div class="site-width">
+        &copy; 2011 <a href="http://www.puppetlabs.com/" title="Puppet Labs">Puppet Labs</a>
+        <span class="vcard">
+         <span class="org"></span>
+         <a class="email" href="mailto:info@puppetlabs.com">info@puppetlabs.com</a>
+
+          <span class="adr">
+           <span class="street-address">926 NW 13th Avenue #210</span>
+           /
+           <span class="locality">Portland</span>,
+           <span class="region">OR</span>
+           <span class="postal-code">97209</span>
+
+          </span>
+
+         <span class="tel">1-877-575-9775</span>
+        </span>
+      </div>
+    </div>
+  </body>
+</html>
+</body>
+</html>

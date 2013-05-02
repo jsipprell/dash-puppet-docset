@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en-US">
+<head>
+  	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  	<title>Language: Tags - Documentation - Puppet Labs</title>     
+    <meta name="keywords" content="Puppet, puppet labs, reductive labs, open source, system administrator, ruby, data center, automation, support" />
+    <link rel="canonical" href="http://docs.puppetlabs.com/lang_tags.html" />
+    <link rel="stylesheet" type="text/css" href="./stylesheets/style.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="./stylesheets/syntax.css" media="screen"> <!-- index -->
+</head>
+
+<body id="puppetlabsdocs" class="docs">
+<section id="content">
+  <div class="site-width">
+    <div class="primary-secondary-content">
+      <div class="primary-content">
+      <!-- dash-puppet-docset header, layout: default -->
+<h2 id="docset-header">Puppet Language: Tags <span class="version">2.7.21</span></h2>
+
+<p><a href="./lang_resources.html">Resources</a>, <a href="./lang_classes.html">classes</a>, and <a href="./lang_defined_types.html">defined type instances</a> may have any number of <strong>tags</strong> associated with them, plus they receive some tags automatically. Tags are useful for:</p>
+<ul>
+<li><a href="./lang_collectors.html">Collecting</a> resources</li>
+<li>Analyzing <a href="/guides/reporting.html#processing-reports">reports</a></li>
+<li>Restricting catalog runs</li>
+</ul>
+<h2 id="tag-names">Tag Names</h2>
+<p><a href="./lang_reserved.html#tags">See here for the characters allowed in tag names.</a></p>
+<h2 id="assigning-tags-to-resources">Assigning Tags to Resources</h2>
+<p>A resource may have any number of tags. There are several ways to assign a tag to a resource.</p>
+<h3 id="automatic-tagging">Automatic Tagging</h3>
+<p>Every resource automatically receives the following tags:</p>
+<ul>
+<li>Its resource type</li>
+<li>The full name of the <a href="./lang_classes.html">class</a> and/or <a href="./lang_defined_types.html">defined type</a> in which the resource was declared</li>
+<li>Every <a href="./lang_namespaces.html">namespace segment</a> of the resource's class and/or defined type</li>
+</ul>
+<p>For example, a file resource in class <code>apache::ssl</code> would get the tags <code>file</code>, <code>apache::ssl</code>, <code>apache</code>, and <code>ssl</code>. </p>
+<p>Class tags are generally the most useful, especially when setting up <a href="/references/latest/report.html#tagmail">tagmail</a> or testing refactored manifests.</p>
+<p>{% comment %} &lt;!-- Actually, there's some bugginess where tags obey the old 0.25.x containment behavior. Issue #15945. I am leaving this deliberately undocumented because yeah. </p>
+<p>Also, you get auto-tagged with the title of the specific defined type instance containing the resource, but only if it is a single-word title! That is also too fuzzy (and useless) to want to document. --&gt; {% endcomment %}</p>
+<h3 id="containment">Containment</h3>
+<p>Like <a href="./lang_relationships.html">relationships</a> and most metaparameters, tags are passed along by <a href="./lang_containment.html">containment</a>. This means a resource will receive all of the tags from the class and/or defined type that contains it. In the case of nested containment (e.g. a class that declares a defined resource, or a defined type that declares other defined resources), a resource will receive tags from all of its containers. </p>
+<h3 id="the-tag-metaparameter">The <code>tag</code> Metaparameter</h3>
+<p>You can use <a href="/references/latest/metaparameter.html#tag">the <code>tag</code> metaparameter</a> in a resource declaration to add any number of tags:</p>
+<pre><code>  apache::vhost {'docs.puppetlabs.com':
+    port =&gt; 80,
+    tag  =&gt; ['us_mirror1', 'us_mirror2'],
+  }
+</code></pre>
+<p>The <code>tag</code> metaparameter can accept a single tag or an array. These will be added to the tags the resource already has. Also, <code>tag</code> can be used with normal resources, <a href="./lang_defined_types.html">defined resources</a>, and classes (when using the resource-like declaration syntax). Since <a href="./lang_containment.html">containment</a> applies to tags, the example above would assign the <code>us_mirror1</code> and <code>us_mirror2</code> tags to every resource contained by <code>Apache::Vhost['docs.puppetlabs.com']</code>. </p>
+<h3 id="the-tag-function">The <code>tag</code> Function</h3>
+<p>You can use <a href="/references/latest/function.html#tag">the <code>tag</code> function</a> inside a class definition or defined type to assign tags to the surrounding container and all of the resources it contains:</p>
+<pre><code>  class role::public_web {
+    tag 'us_mirror1', 'us_mirror2'
+
+    apache::vhost {'docs.puppetlabs.com':
+      port =&gt; 80,
+    }
+    ssh::allowgroup {'www-data': }
+    @@nagios::website {'docs.puppetlabs.com': }
+  }
+</code></pre>
+<p>The example above would assign the <code>us_mirror1</code> and <code>us_mirror2</code> tags to all of the defined resources being declared in the class <code>role::public_web</code>, as well as to all of the resources each of them contains.</p>
+<h2 id="using-tags">Using Tags</h2>
+<h3 id="collecting-resources">Collecting Resources</h3>
+<p>Tags can be used as an attribute in the <a href="./lang_collectors.html#search-expressions">search expression</a> of a <a href="./lang_collectors.html">resource collector</a>. This is mostly useful for realizing <a href="./lang_virtual.html">virtual</a> and <a href="./lang_exported.html">exported</a> resources.</p>
+<h3 id="restricting-catalog-runs">Restricting Catalog Runs</h3>
+<p>Puppet agent and puppet apply can use <a href="/references/latest/configuration.html#tags">the <code>tags</code> setting</a> to only apply a subset of the node's <a href="./lang_summary.html#compilation-and-catalogs">catalog</a>. This is useful when refactoring modules, and allows you to only apply a single class on a test node.</p>
+<p>The <code>tags</code> setting can be set in <code>puppet.conf</code> (to permanently restrict the catalog) or on the command line (to temporarily restrict it):</p>
+<pre><code>  $ sudo puppet agent --test --tags apache,us_mirror1
+</code></pre>
+<p>The value of the <code>tags</code> setting should be a comma-separated list of tags (with no spaces between tags). </p>
+<h3 id="sending-tagmail-reports">Sending Tagmail Reports</h3>
+<p>The built-in <a href="/references/latest/report.html#tagmail">tagmail report handler</a> can send emails to arbitrary email addresses whenever resources with certain tags are changed. See the following for more info:</p>
+<ul>
+<li><a href="/references/latest/report.html#tagmail">The tagmail report handler</a></li>
+<li><a href="/guides/configuring.html#tagmailconf">The <code>tagmail.conf</code> file</a></li>
+</ul>
+<h3 id="reading-tags-in-custom-report-handlers">Reading Tags in Custom Report Handlers</h3>
+<p>Resource tags are available to custom report handlers and out-of-band report processors: Each <code>Puppet::Resource::Status</code> object and <code>Puppet::Util::Log</code> object has a <code>tags</code> key whose value is an array containing every tag for the resource in question. See the following pages for more info:</p>
+<ul>
+<li><a href="/guides/reporting.html#processing-reports">Processing Reports</a></li>
+<li><a href="http://projects.puppetlabs.com/projects/puppet/wiki/Report_Format_2">Report Format 2</a> (the report format used by Puppet 2.7)</li>
+</ul>
+<!-- dash-puppet-docset footer, layout: default -->
+              <blockquote><p style="font-size: 1.3em; text-align: center;"><a href="#content">↑ Back to top</a></p></blockquote>
+            </div>
+          </div>
+        </div>
+      </section>
+<div id="copyright">
+      <div class="site-width">
+        &copy; 2011 <a href="http://www.puppetlabs.com/" title="Puppet Labs">Puppet Labs</a>
+        <span class="vcard">
+         <span class="org"></span>
+         <a class="email" href="mailto:info@puppetlabs.com">info@puppetlabs.com</a>
+
+          <span class="adr">
+           <span class="street-address">926 NW 13th Avenue #210</span>
+           /
+           <span class="locality">Portland</span>,
+           <span class="region">OR</span>
+           <span class="postal-code">97209</span>
+
+          </span>
+
+         <span class="tel">1-877-575-9775</span>
+        </span>
+      </div>
+    </div>
+  </body>
+</html>
+</body>
+</html>

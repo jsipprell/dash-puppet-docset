@@ -8,8 +8,10 @@
 	<string>Puppet</string>
 	<key>DocSetPlatformFamily</key>
 	<string>Puppet</string>
+	<key>DashDocSetFamily</key>
+	<string>sencha</string>
 	<key>dashIndexFilePath</key>
-	<string>type.html</string>
+	<string>lang_conditional.html</string>
 	<key>isDashDocset</key>
 	<true/>
 </dict>

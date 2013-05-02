@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en-US">
+<head>
+  	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  	<title>Language: Node Definitions - Documentation - Puppet Labs</title>     
+    <meta name="keywords" content="Puppet, puppet labs, reductive labs, open source, system administrator, ruby, data center, automation, support" />
+    <link rel="canonical" href="http://docs.puppetlabs.com/lang_node_definitions.html" />
+    <link rel="stylesheet" type="text/css" href="./stylesheets/style.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="./stylesheets/syntax.css" media="screen"> <!-- index -->
+</head>
+
+<body id="puppetlabsdocs" class="docs">
+<section id="content">
+  <div class="site-width">
+    <div class="primary-secondary-content">
+      <div class="primary-content">
+      <!-- dash-puppet-docset header, layout: default -->
+<h2 id="docset-header">Puppet Language: Node Definitions <span class="version">2.7.21</span></h2>
+
+<!-- TODO: Need better link for hiera -->
+
+<!-- TODO: need better link for site.pp and certname-->
+
+<p>A <strong>node definition</strong> or <strong>node statement</strong> is a block of Puppet code that will only be included in one node's <a href="./lang_summary.html#compilation-and-catalogs">catalog</a>. This feature allows you to assign specific configurations to specific nodes.</p>
+<p>Node statements are an <strong>optional feature</strong> of Puppet. They can be replaced by or combined with an <a href="/guides/external_nodes.html">external node classifier</a>, or you can eschew both and use conditional statements with <a href="./lang_variables.html#facts-and-built-in-variables">facts</a> to classify nodes.</p>
+<p>Unlike more general conditional structures, node statements only match nodes by <strong>name.</strong> By default, the name of a node is its <a href="/references/latest/configuration.html#certname">certname</a> (which defaults to the node's fully qualified domain name). </p>
+<h2 id="location">Location</h2>
+<p>Node definitions should go in <a href="lang_summary.html#files">the site manifest (site.pp)</a>.</p>
+<p>Alternately, you can store node definitions in any number of manifest files which are <a href="./lang_import.html">imported</a> into site.pp:</p>
+<pre><code>  # /etc/puppetlabs/puppet/manifests/site.pp
+
+  # Import every file in /etc/puppetlabs/puppet/manifests/nodes/
+  # (Usually, each file contains one node definition.)
+  import 'nodes/*.pp'
+
+  # Import several nodes from a single file
+  import 'extra_nodes.pp'
+</code></pre>
+<p>This is one of the only recommended use cases for <code>import</code>. Note that using <code>import</code> will require you to restart the puppet master if you change the node manifests and that importing many files will slow down Puppet's compilation time. <a href="./lang_import.html">See the documentation of <code>import</code></a> for details.</p>
+<blockquote>
+<p>Node statements should never be put in <a href="./modules_fundamentals.html">modules</a>. The behavior of a node statement in an autoloaded manifest is undefined.</p>
+</blockquote>
+<h2 id="syntax">Syntax</h2>
+<pre><code>  # /etc/puppetlabs/puppet/manifests/site.pp
+  node 'www1.example.com' {
+    include common
+    include apache
+    include squid
+  }
+  node 'db1.example.com' {
+    include common
+    include mysql
+  }
+</code></pre>
+<p>In the example above, only <code>www1.example.com</code> would receive the apache and squid classes, and only <code>db1.example.com</code> would receive the mysql class. </p>
+<p>Node definitions look like class definitions. The general form of a node definition is:</p>
+<ul>
+<li>The <code>node</code> keyword</li>
+<li>The name(s) of the node(s)</li>
+<li>Optionally, the <code>inherits</code> keyword followed by the name of another node definition</li>
+<li>An opening curly brace</li>
+<li>Any mixture of class declarations, variables, resource declarations, collectors, conditional statements, chaining relationships, and functions</li>
+<li>A closing curly brace</li>
+</ul>
+<blockquote>
+<h4 id="aside-best-practices">Aside: Best Practices</h4>
+<p>Although node statements can contain almost any Puppet code, we recommend that you <strong>only</strong> use them to <strong>set variables</strong> and <strong>declare classes.</strong> Avoid using resource declarations, collectors, conditional statements, chaining relationships, and functions in them; all of these belong in classes or defined types.</p>
+<p>This will make it easier to switch between node definitions and an ENC.</p>
+</blockquote>
+<h2 id="naming">Naming</h2>
+<p>Node statements match nodes by name. A node's name is its unique identifier; by default, this is its <a href="/references/latest/configuration.html#certname">certname</a> setting, which in turn resolves to the node's fully qualified domain name. </p>
+<blockquote>
+<h4 id="notes-on-node-names">Notes on Node Names</h4>
+<ul>
+<li>The set of characters allowed in a node name is <strong>undefined</strong> in this version of Puppet. For best future compatibility, you should limit node names to letters, numbers, periods, underscores, and dashes.</li>
+<li>Although it is possible to configure Puppet to use something other than the <a href="/references/latest/configuration.html#certname">certname</a> as a node name, this is not generally recommended.</li>
+</ul>
+</blockquote>
+<p>A node statement's <strong>name</strong> must be one of the following: </p>
+<ul>
+<li>A quoted <a href="./lang_datatypes.html#strings">string</a></li>
+<li>The bare word <code>default</code></li>
+<li>A <a href="./lang_datatypes.html#regular-expressions">regular expression</a></li>
+</ul>
+<p>You may not create two node statements with the same name.</p>
+<h3 id="multiple-names">Multiple Names</h3>
+<p>You can use a comma-separated list of names to create a group of nodes with a single node statement:</p>
+<pre><code>  node 'www1.example.com', 'www2.example.com', 'www3.example.com' {
+    include common
+    include apache, squid
+  }
+</code></pre>
+<p>This example creates three identical nodes: <code>www1.example.com</code>, <code>www2.example.com</code>, and <code>www3.example.com</code>.</p>
+<h3 id="the-default-node">The Default Node</h3>
+<p>The name <code>default</code> (without quotes) is a special value for node names. If no node statement matching a given node can be found, the <code>default</code> node will be used. See <a href="#behavior">Behavior</a> below.</p>
+<h3 id="regular-expression-names">Regular Expression Names</h3>
+<p><a href="./lang_datatypes.html#regular-expressions">Regular expressions (regexes)</a> can be used as node names. This is another method for writing a single node statement that matches multiple nodes.</p>
+<pre><code>  node /^www\d+$/ {
+    include common
+  }
+</code></pre>
+<p>The above example would match <code>www1</code>, <code>www13</code>, and any other node whose name consisted of <code>www</code> and one or more
+digits.</p>
+<pre><code>  node /^(foo|bar)\.example\.com$/ {
+    include common
+  }
+</code></pre>
+<p>The above example would match <code>foo.example.com</code> and <code>bar.example.com</code>, but no other nodes.</p>
+<blockquote>
+<p>Make sure that node regexes do not overlap. If more than one regex statement matches a given node, the one it gets will be parse-order dependent.</p>
+</blockquote>
+<h4 id="no-regex-capture-variables">No Regex Capture Variables</h4>
+<p>Regular expression node names <strong>do not</strong> use numbered variables to expose captures from the pattern inside the node definition. This differs from the behavior of <a href="./lang_conditional.html">conditional statements</a> that use regexes.</p>
+<h2 id="behavior">Behavior</h2>
+<p>If site.pp contains at least one node definition, it must have one for <strong>every</strong> node; compilation for a node will fail if one cannot be found. (Hence the usefulness of <a href="#the-default-node">the <code>default</code> node</a>.) If site.pp contains <strong>no</strong> node definitions, this requirement is dropped.</p>
+<h3 id="matching">Matching</h3>
+<p>A given node will only get the contents of <strong>one</strong> node definition, even if two node statements could match a node's name. Puppet will do the following checks in order when deciding which definition to use:</p>
+<ol>
+<li>If there is a node definition with the node's exact name, Puppet will use it.</li>
+<li>If there is at least one regular expression node statement that matches the node's whole name, Puppet will use the first one it finds.</li>
+<li>If the node's name looks like a fully qualified domain name (i.e. multiple period-separated groups of letters, numbers, underscores and dashes), Puppet will chop off the final group and start again at step 1. (That is, if a definition for <code>www01.example.com</code> isn't found, Puppet will look for a definition matching <code>www01.example</code>.) </li>
+<li>Puppet will use the <code>default</code> node. </li>
+</ol>
+<p>Thus, for the node <code>www01.example.com</code>, Puppet would try the following, in order:</p>
+<ul>
+<li><code>www01.example.com</code></li>
+<li>The first regex matching <code>www01.example.com</code></li>
+<li><code>www01.example</code></li>
+<li>The first regex matching <code>www01.example</code></li>
+<li><code>www01</code></li>
+<li>The first regex matching <code>www01</code></li>
+<li><code>default</code></li>
+</ul>
+<p>You can turn off this fuzzy name matching by changing the puppet master's <a href="/references/latest/configuration.html#stricthostnamechecking"><code>strict_hostname_checking</code></a> setting to <code>true</code>. This will cause Puppet to skip step 3 and only use the node's full name before resorting to <code>default</code>.</p>
+<h3 id="code-outside-node-statements">Code Outside Node Statements</h3>
+<p>Puppet code that is outside any node statement will be compiled for every node. That is, a given node will get both the code in its node definition and the code outside any node definition.</p>
+<h3 id="node-scope">Node Scope</h3>
+<p>Node definitions create a new anonymous scope that can override variables and defaults from top scope. See <a href="./lang_scope.html#node-scope">the section on node scope</a> for details. </p>
+<h3 id="merging-with-enc-data">Merging With ENC Data</h3>
+<p>Node definitions and <a href="/guides/external_nodes.html">external node classifiers</a> can co-exist. Puppet merges their data as follows:</p>
+<ul>
+<li>Variables from an ENC are set at <a href="./lang_scope.html#top-scope">top scope</a> and can thus be overridden by variables in a node definition. </li>
+<li>Classes from an ENC are declared at <a href="./lang_scope.html#node-scope">node scope</a>, which means they will be affected by any variables set in the node definition.</li>
+</ul>
+<p>Although ENCs and node definitions can work together, we recommend that most users pick one or the other. </p>
+<h3 id="inheritance">Inheritance</h3>
+<p>Nodes can inherit from other nodes using the <code>inherits</code> keyword. Inheritance works identically to <a href="./lang_classes.html#inheritance">class inheritance</a>. <strong>This feature is not recommended; see the aside below.</strong></p>
+<p>Example: </p>
+<pre><code>  node 'common' {
+    $ntpserver = 'time.example.com'
+    include common
+  }
+  node 'www1.example.com' inherits 'common' {
+    include ntp
+    include apache
+    include squid
+  }
+</code></pre>
+<p>In the above example, <code>www1.example.com</code> would receive the <code>common, ntp, apache,</code> and <code>squid</code> classes, and would have an <code>$ntpserver</code> of <code>time.example.com</code>. </p>
+<blockquote>
+<h4 id="aside-best-practices_1">Aside: Best Practices</h4>
+<p>You should almost certainly avoid using node inheritance. Many users attempt to do the following: </p>
+<pre><code>  node 'common' {
+    $ntpserver = 'time.example.com'
+    include common
+    include ntp
+  }
+  node 'www01.example.com' inherits 'common' {
+    # Override default NTP server:
+    $ntpserver = '0.pool.ntp.org'
+  }
+</code></pre>
+<p>This will have the opposite of the intended effect, because Puppet treats node definitions like classes. It does not mash the two together and then compile the mix; instead, it compiles the base class, <strong>then</strong> compiles the derived class, which gets a parent scope and special permission to modify resource attributes from the base class. </p>
+<p>In the example above, this means that by the time <code>node www01.example.com</code> has set its own value for <code>$ntpserver</code>, the <code>ntp</code> class has <strong>already received</strong> the value it needed and is no longer interested in that variable. For the derived node to override that variable <strong>for classes in the base node,</strong> it would have to be complied <strong>before</strong> the base node, and there is no way for Puppet's current implementation to do that. </p>
+<h4 id="alternatives-to-node-inheritance">Alternatives to Node Inheritance</h4>
+<ul>
+<li>Most users who need hierarchical data should keep it in an external source and have their manifests look it up. The best solution right now is <a href="https://github.com/puppetlabs/hiera">Hiera</a>, which is available as an add-on for Puppet 2.7 and will be available by default in Puppet 3.0. You can also use the <a href="/references/latest/function.html#extlookup">extlookup</a> function, which is available by default in Puppet 2.6 and later. </li>
+<li><a href="/guides/external_nodes.html">ENCs</a> can look up data from any arbitrary source, and return it to Puppet as top-scope variables.</li>
+<li>If you have node-specific data in an external CMDB, you can easily write <a href="/guides/custom_functions.html">custom Puppet functions</a> to query it. </li>
+<li>For very small numbers of nodes, you can copy and paste to make complete node definitions for special-case nodes. </li>
+<li>With discipline, you can use node inheritance <strong>only</strong> for data lookup. The safest approach is to <strong>only set variables</strong> in the base nodes, then declare <strong>all</strong> classes in the derived nodes. This is less terse than the mix-and-match that most users try first, but is completely reliable. </li>
+</ul>
+</blockquote>
+<!-- dash-puppet-docset footer, layout: default -->
+              <blockquote><p style="font-size: 1.3em; text-align: center;"><a href="#content">↑ Back to top</a></p></blockquote>
+            </div>
+          </div>
+        </div>
+      </section>
+<div id="copyright">
+      <div class="site-width">
+        &copy; 2011 <a href="http://www.puppetlabs.com/" title="Puppet Labs">Puppet Labs</a>
+        <span class="vcard">
+         <span class="org"></span>
+         <a class="email" href="mailto:info@puppetlabs.com">info@puppetlabs.com</a>
+
+          <span class="adr">
+           <span class="street-address">926 NW 13th Avenue #210</span>
+           /
+           <span class="locality">Portland</span>,
+           <span class="region">OR</span>
+           <span class="postal-code">97209</span>
+
+          </span>
+
+         <span class="tel">1-877-575-9775</span>
+        </span>
+      </div>
+    </div>
+  </body>
+</html>
+</body>
+</html>

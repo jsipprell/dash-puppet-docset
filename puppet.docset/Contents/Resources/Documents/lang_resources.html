@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en-US">
+<head>
+  	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  	<title>Language: Resources - Documentation - Puppet Labs</title>     
+    <meta name="keywords" content="Puppet, puppet labs, reductive labs, open source, system administrator, ruby, data center, automation, support" />
+    <link rel="canonical" href="http://docs.puppetlabs.com/lang_resources.html" />
+    <link rel="stylesheet" type="text/css" href="./stylesheets/style.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="./stylesheets/syntax.css" media="screen"> <!-- index -->
+</head>
+
+<body id="puppetlabsdocs" class="docs">
+<section id="content">
+  <div class="site-width">
+    <div class="primary-secondary-content">
+      <div class="primary-content">
+      <!-- dash-puppet-docset header, layout: default -->
+<h2 id="docset-header">Puppet Language: Resources <span class="version">2.7.21</span></h2>
+
+<blockquote>
+<ul>
+<li><a href="/references/latest/type.html">See the Type Reference for complete information about Puppet's built-in resource types.</a></li>
+</ul>
+</blockquote>
+<p><strong>Resources</strong> are the fundamental unit for modeling system configurations. Each resource describes some aspect of a system, like a service that must be running or a package that must be installed. The block of Puppet code that describes a resource is called a <strong>resource declaration.</strong></p>
+<p>Declaring a resource instructs Puppet to include it in the <a href="./lang_summary.html#compilation-and-catalogs">catalog</a> and manage its state on the target system. Resource declarations inside a <a href="./lang_classes.html">class definition</a> or <a href="./lang_defined_types.html">defined type</a> are only added to the catalog once the class or an instance of the defined type is declared. <a href="./lang_virtual.html">Virtual resources</a> are only added to the catalog once they are <a href="./lang_virtual.html#syntax">realized</a>.</p>
+<h2 id="syntax">Syntax</h2>
+<pre><code>  # A resource declaration:
+  file { '/etc/passwd':
+    ensure =&gt; file,
+    owner  =&gt; 'root',
+    group  =&gt; 'root',
+    mode   =&gt; '0600',
+  }
+</code></pre>
+<p>Every resource has a <strong>type,</strong> a <strong>title,</strong> and a set of <strong>attributes:</strong> </p>
+<pre><code>  type {'title':
+    attribute =&gt; value,
+  }
+</code></pre>
+<p>The general form of a resource declaration is:</p>
+<ul>
+<li>The resource type, in lower-case</li>
+<li>An opening curly brace</li>
+<li>The title, which is a <a href="./lang_datatypes.html#strings">string</a></li>
+<li>A colon</li>
+<li>Optionally, any number of attribute and value pairs, each of which consists of:<pre><code>* An attribute name, which is a bare word
+* A `=&gt;` (arrow, fat comma, or hash rocket)
+* A value, which can be any [data type][datatype], depending on what the attribute requires
+* A trailing comma (note that the comma is optional after the final attribute/value pair)
+</code></pre>
+</li>
+<li>Optionally, a semicolon, followed by another title, colon, and attribute block</li>
+<li>A closing curly brace</li>
+</ul>
+<p>Note that, in the Puppet language, whitespace is fungible.</p>
+<h3 id="type">Type</h3>
+<p>The type identifies what kind of resource it is. Puppet has a large number of built-in resource types, including files on disk, cron jobs, user accounts, services, and software packages. <a href="/references/latest/type.html">See here for a list of built-in resource types</a>.</p>
+<p>Puppet can be extended with additional resource types, written in Ruby or in the Puppet language. </p>
+<h3 id="title">Title</h3>
+<p>The title is an identifying string. It only has to identify the resource to Puppet's compiler; it does not need to bear any relationship to the actual target system. </p>
+<p>Titles <strong>must be unique per resource type.</strong> You may have a package and a service both titled "ntp," but you may only have one service titled "ntp." Duplicate titles will cause a compilation failure. </p>
+<h3 id="attributes">Attributes</h3>
+<p>Attributes describe the desired state of the resource; each attribute handles some aspect of the resource.</p>
+<p>Each resource type has its own set of available attributes; see <a href="/references/latest/type.html">the type reference</a> for a complete list. Most types have a handful of crucial attributes and a larger number of optional ones. Many attributes have a default value that will be used if a value isn't specified. </p>
+<p>Every attribute you declare must have a value; the <a href="./lang_datatypes.html">data type</a> of the value depends on what the attribute accepts. Most attributes that can take multiple values accept them as an <a href="./lang_datatypes.html#arrays">array</a>.</p>
+<h4 id="parameters">Parameters</h4>
+<p>When discussing resources and types, <strong>parameter</strong> is a synonym for attribute. "Parameter" is usually used when discussing a <strong>type,</strong> and "attribute" is usually used when discussing an individual <strong>resource.</strong></p>
+<h2 id="behavior">Behavior</h2>
+<p>A resource declaration adds a resource to the catalog, and tells Puppet to manage that resource's state. When Puppet applies the compiled catalog, it will:</p>
+<ul>
+<li>Read the actual state of the resource on the target system</li>
+<li>Compare the actual state to the desired state</li>
+<li>If necessary, change the system to enforce the desired state</li>
+</ul>
+<h3 id="uniqueness">Uniqueness</h3>
+<p>Puppet does not allow you to declare the same resource twice. This is to prevent multiple conflicting values from being declared for the same attribute. </p>
+<p>Puppet uses the <a href="#title">title</a> and <a href="#namenamevar">name/namevar</a> to identify duplicate resources --- if either of these is duplicated within a given resource type, the compilation will fail. </p>
+<p>If multiple classes require the same resource, you can use a <a href="./lang_classes.html">class</a> or a <a href="./lang_virtual.html">virtual resource</a> to add it to the catalog in multiple places without duplicating it.</p>
+<h3 id="events">Events</h3>
+<p>If Puppet makes any changes to a resource, it will log those changes as events. These events will appear in puppet agent's log and in the run <a href="/guides/reporting.html">report</a>, which is sent to the puppet master and forwarded to any number of report processors.</p>
+<h3 id="parse-order-independence">Parse-Order Independence</h3>
+<p>Resources are not applied to the target system in the order they are written in the manifests --- Puppet will apply the resources in whatever way is most efficient. If a resource must be applied before or after some other resource, you must explicitly say so. <a href="./lang_relationships.html">See Relationships for more information.</a></p>
+<h3 id="scope-independence">Scope Independence</h3>
+<p>Resources are not subject to <a href="./lang_scope.html">scope</a> --- a resource in any scope may be <a href="./lang_datatypes.html#resource-references">referenced</a> from any other scope, and local scopes do not introduce local namespaces for resource titles.</p>
+<h3 id="containment">Containment</h3>
+<p>Resources may be contained by <a href="./lang_classes.html">classes</a> and <a href="./lang_defined_types.html">defined types</a>. See <a href="./lang_containment.html">Containment</a> for more details.</p>
+<h2 id="special-attributes">Special Attributes</h2>
+<h3 id="namenamevar">Name/Namevar</h3>
+<p>Most types have an attribute which identifies a resource <em>on the target system.</em> This is referred to as the "namevar," and is often simply called "name." For example, the <code>name</code> of a service or package is the name by which the system's service or package tools will recognize it. The <code>path</code> of a file is its location on disk.</p>
+<p>Namevar values <strong>must be unique per resource type,</strong> with only rare exceptions (such as <code>exec</code>). </p>
+<p>Namevars are not to be confused with the title, which identifies a resource <em>to Puppet.</em> However, they often have the same value, since the namevar's value will <strong>default to the title</strong> if it isn't specified. Thus, the <code>path</code> of the file example <a href="#resource-declarations">above</a> is <code>/etc/passwd</code>, even though it was never specified. </p>
+<p>The distinction between title and namevar lets you use a single, consistently-titled resource to manage something whose name differs by platform. For example, the NTP service is <code>ntpd</code> on Red Hat-derived systems, but <code>ntp</code> on Debian and Ubuntu; the service resource could simply be titled "ntp," but could have its name set correctly by platform. Other resources could then form relationships to it without worrying that its title will change.</p>
+<h3 id="ensure">Ensure</h3>
+<p>Many types have an <code>ensure</code> attribute. This generally manages the most fundamental aspect of the resource on the target system --- does the file exist, is the service running or stopped, is the package installed or uninstalled, etc.</p>
+<p>Allowed values for <code>ensure</code> vary by type. Most types accept <code>present</code> and <code>absent</code>, but there may be additional variations. Be sure to check the reference for each type you are working with.</p>
+<h3 id="metaparameters">Metaparameters</h3>
+<p>Some attributes in Puppet can be used with every resource type. These are called <strong>metaparameters.</strong> They don't map directly to system state; instead, they specify how Puppet should act toward the resource.</p>
+<p>The most commonly used metaparameters are for specifying <a href="./lang_relationships.html">order relationships</a> between resources. </p>
+<p>You can see the full list of all metaparameters in the <a href="/references/stable/metaparameter.html">Metaparameter Reference</a>.</p>
+<h2 id="condensed-forms">Condensed Forms</h2>
+<p>There are two ways to compress multiple resource declarations. You can also use <a href="./lang_defaults.html">resource defaults</a> to reduce duplicate typing. </p>
+<h3 id="array-of-titles">Array of Titles</h3>
+<p>If you specify an array of strings as the title of a resource declaration, Puppet will treat it as multiple resource declarations with an identical block of attributes. </p>
+<pre><code>  file { ['/etc',
+          '/etc/rc.d',
+          '/etc/rc.d/init.d',
+          '/etc/rc.d/rc0.d',
+          '/etc/rc.d/rc1.d',
+          '/etc/rc.d/rc2.d',
+          '/etc/rc.d/rc3.d',
+          '/etc/rc.d/rc4.d',
+          '/etc/rc.d/rc5.d',
+          '/etc/rc.d/rc6.d']: 
+    ensure =&gt; directory,
+    owner  =&gt; 'root',
+    group  =&gt; 'root',
+    mode   =&gt; 0755,
+  }
+</code></pre>
+<p>This example is the same as declaring each directory as a separate resource with the same attribute block. You can also store an array in a variable and specify the variable as a resource title: </p>
+<pre><code>  $rcdirectories = ['/etc',
+                    '/etc/rc.d',
+                    '/etc/rc.d/init.d',
+                    '/etc/rc.d/rc0.d',
+                    '/etc/rc.d/rc1.d',
+                    '/etc/rc.d/rc2.d',
+                    '/etc/rc.d/rc3.d',
+                    '/etc/rc.d/rc4.d',
+                    '/etc/rc.d/rc5.d',
+                    '/etc/rc.d/rc6.d']
+
+  file { $rcdirectories: 
+    ensure =&gt; directory,
+    owner  =&gt; 'root',
+    group  =&gt; 'root',
+    mode   =&gt; 0755,
+  }
+</code></pre>
+<p>Note that you cannot specify a separate namevar with an array of titles, since it would then be duplicated across all of the resources. Thus, each title must be a valid namevar value. </p>
+<h3 id="semicolon-after-attribute-block">Semicolon After Attribute Block</h3>
+<p>If you end an attribute block with a semicolon rather than a comma, you may specify another title, another colon, and another complete attribute block, instead of closing the curly braces. Puppet will treat this as multiple resources of a single type. </p>
+<pre><code>  file {
+    '/etc/rc.d':
+      ensure =&gt; directory,
+      owner  =&gt; 'root',
+      group  =&gt; 'root',
+      mode   =&gt; 0755;
+
+    '/etc/rc.d/init.d':
+      ensure =&gt; directory,
+      owner  =&gt; 'root',
+      group  =&gt; 'root',
+      mode   =&gt; 0755;
+
+    '/etc/rc.d/rc0.d':
+      ensure =&gt; directory,
+      owner  =&gt; 'root',
+      group  =&gt; 'root',
+      mode   =&gt; 0755;
+  }
+</code></pre>
+<h2 id="adding-or-modifying-attributes">Adding or Modifying Attributes</h2>
+<p>Although you cannot declare the same resource twice, you can add attributes to an already-declared resource. In certain circumstances, you can also override attributes.</p>
+<h3 id="amending-attributes-with-a-reference">Amending Attributes With a Reference</h3>
+<pre><code>  file {'/etc/passwd':
+    ensure =&gt; file,
+  }
+
+  File['/etc/passwd'] {
+    owner =&gt; 'root',
+    group =&gt; 'root',
+    mode  =&gt; 0640,
+  }
+</code></pre>
+<p>The general form of a reference attribute block is:</p>
+<ul>
+<li>A <a href="./lang_datatypes.html#resource-references">reference</a> to the resource in question (or a multi-resource reference)</li>
+<li>An opening curly brace</li>
+<li>Any number of attribute =&gt; value pairs</li>
+<li>A closing curly brace</li>
+</ul>
+<p>In normal circumstances, this idiom can only be used to add previously unmanaged attributes to a resource; it cannot override already-specified attributes. However, within an <a href="./lang_classes.html#inheritance">inherited class</a>, you <strong>can</strong> use this idiom to override attributes.</p>
+<h3 id="amending-attributes-with-a-collector">Amending Attributes With a Collector</h3>
+<pre><code>  class base::linux {
+    file {'/etc/passwd':
+      ensure =&gt; file,
+    }
+    ...
+  }
+
+  include base::linux
+
+  File &lt;| tag == 'base::linux' |&gt; {
+    owner =&gt; 'root',
+    group =&gt; 'root',
+    mode  =&gt; 0640,
+  }
+</code></pre>
+<p>The general form of a collector attribute block is:</p>
+<ul>
+<li>A <a href="./lang_collectors.html">resource collector</a> that matches any number of resources</li>
+<li>An opening curly brace</li>
+<li>Any number of attribute =&gt; value (or attribute +&gt; value) pairs</li>
+<li>A closing curly brace</li>
+</ul>
+<p>Much like in an <a href="./lang_classes.html#inheritance">inherited class</a>, you can use the special <code>+&gt;</code> keyword to append values to attributes that accept arrays. See <a href="./lang_classes.html#appending-to-resource-attributes">appending to attributes</a> for more details.</p>
+<blockquote>
+<p>Note that this idiom <strong>must be used carefully,</strong> if at all:</p>
+<ul>
+<li>It <strong>can always override</strong> already-specified attributes, regardless of class inheritance.</li>
+<li>It can affect large numbers of resources at once.</li>
+<li>It will <a href="./lang_virtual.html#syntax">implicitly realize</a> any <a href="./lang_virtual.html">virtual resources</a> that the collector matches. If you are using virtual resources at all, you must use extreme care when constructing collectors that are not intended to realize resources, and would be better off avoiding non-realizing collectors entirely. </li>
+<li>Since it ignores class inheritance, you can override the same attribute twice, which results in a parse-order dependent race where the final override wins.</li>
+</ul>
+</blockquote>
+<!-- dash-puppet-docset footer, layout: default -->
+              <blockquote><p style="font-size: 1.3em; text-align: center;"><a href="#content">↑ Back to top</a></p></blockquote>
+            </div>
+          </div>
+        </div>
+      </section>
+<div id="copyright">
+      <div class="site-width">
+        &copy; 2011 <a href="http://www.puppetlabs.com/" title="Puppet Labs">Puppet Labs</a>
+        <span class="vcard">
+         <span class="org"></span>
+         <a class="email" href="mailto:info@puppetlabs.com">info@puppetlabs.com</a>
+
+          <span class="adr">
+           <span class="street-address">926 NW 13th Avenue #210</span>
+           /
+           <span class="locality">Portland</span>,
+           <span class="region">OR</span>
+           <span class="postal-code">97209</span>
+
+          </span>
+
+         <span class="tel">1-877-575-9775</span>
+        </span>
+      </div>
+    </div>
+  </body>
+</html>
+</body>
+</html>

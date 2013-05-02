@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en-US">
+<head>
+  	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  	<title>Language: Resource Defaults - Documentation - Puppet Labs</title>     
+    <meta name="keywords" content="Puppet, puppet labs, reductive labs, open source, system administrator, ruby, data center, automation, support" />
+    <link rel="canonical" href="http://docs.puppetlabs.com/lang_defaults.html" />
+    <link rel="stylesheet" type="text/css" href="./stylesheets/style.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="./stylesheets/syntax.css" media="screen"> <!-- index -->
+</head>
+
+<body id="puppetlabsdocs" class="docs">
+<section id="content">
+  <div class="site-width">
+    <div class="primary-secondary-content">
+      <div class="primary-content">
+      <!-- dash-puppet-docset header, layout: default -->
+<h2 id="docset-header">Puppet Language: Resource Defaults <span class="version">2.7.21</span></h2>
+
+<!-- TODO: need better link for site.pp -->
+
+<p>Resource defaults let you set default attribute values for a given resource type. Any resource declaration within the area of effect that omits those attributes will inherit the default values.</p>
+<h2 id="syntax">Syntax</h2>
+<pre><code>  Exec { 
+    path        =&gt; '/usr/bin:/bin:/usr/sbin:/sbin',
+    environment =&gt; 'RUBYLIB=/opt/puppet/lib/ruby/site_ruby/1.8/',
+    logoutput   =&gt; true,
+    timeout     =&gt; 180,
+  }
+</code></pre>
+<p>The general form of resource defaults is:</p>
+<ul>
+<li>The resource type, capitalized. (If the type has a namespace separator (<code>::</code>) in its name, every segment must be capitalized. E.g., <code>Concat::Fragment</code>.)</li>
+<li>An opening curly brace.</li>
+<li>Any number of attribute and value pairs.</li>
+<li>A closing curly brace. </li>
+</ul>
+<p>You can specify defaults for any resource type in Puppet, including <a href="./lang_defined_types.html">defined types</a>.</p>
+<h2 id="behavior">Behavior</h2>
+<p>Within the <a href="#area-of-effect">area of effect</a>, every resource of the specified type that omits a given attribute will inherit that attribute's default value.    </p>
+<p>Attributes that are set explicitly in a resource declaration will always override any default value. </p>
+<p>Resource defaults are <strong>parse-order independent.</strong> A default will affect resource declarations written both above and below it.</p>
+<h3 id="overriding-defaults-from-parent-scopes">Overriding Defaults From Parent Scopes</h3>
+<p>Resource defaults declared in the local scope will override any defaults received from parent scopes. </p>
+<p>Overriding of resource defaults is <strong>per attribute,</strong> not per block of attributes. Thus, local and inherited resource defaults that don't conflict with each other will be merged together. </p>
+<h3 id="area-of-effect">Area of Effect</h3>
+<p>Resource defaults obey dynamic scope; <a href="./lang_scope.html#scope-lookup-rules">see here for a full description of scope rules</a>. </p>
+<p>You can declare global resource defaults in the <a href="./lang_summary.html#files">site manifest</a> outside any <a href="./lang_node_definitions.html">node definition</a>.</p>
+<p>Unlike dynamic variable lookup, dynamic scope for resource defaults is not deprecated in Puppet 2.7.</p>
+<!-- dash-puppet-docset footer, layout: default -->
+              <blockquote><p style="font-size: 1.3em; text-align: center;"><a href="#content">↑ Back to top</a></p></blockquote>
+            </div>
+          </div>
+        </div>
+      </section>
+<div id="copyright">
+      <div class="site-width">
+        &copy; 2011 <a href="http://www.puppetlabs.com/" title="Puppet Labs">Puppet Labs</a>
+        <span class="vcard">
+         <span class="org"></span>
+         <a class="email" href="mailto:info@puppetlabs.com">info@puppetlabs.com</a>
+
+          <span class="adr">
+           <span class="street-address">926 NW 13th Avenue #210</span>
+           /
+           <span class="locality">Portland</span>,
+           <span class="region">OR</span>
+           <span class="postal-code">97209</span>
+
+          </span>
+
+         <span class="tel">1-877-575-9775</span>
+        </span>
+      </div>
+    </div>
+  </body>
+</html>
+</body>
+</html>

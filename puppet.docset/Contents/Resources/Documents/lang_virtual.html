@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en-US">
+<head>
+  	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  	<title>Language: Virtual Resources - Documentation - Puppet Labs</title>     
+    <meta name="keywords" content="Puppet, puppet labs, reductive labs, open source, system administrator, ruby, data center, automation, support" />
+    <link rel="canonical" href="http://docs.puppetlabs.com/lang_virtual.html" />
+    <link rel="stylesheet" type="text/css" href="./stylesheets/style.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="./stylesheets/syntax.css" media="screen"> <!-- index -->
+</head>
+
+<body id="puppetlabsdocs" class="docs">
+<section id="content">
+  <div class="site-width">
+    <div class="primary-secondary-content">
+      <div class="primary-content">
+      <!-- dash-puppet-docset header, layout: default -->
+<h2 id="docset-header">Puppet Language: Virtual Resources <span class="version">2.7.21</span></h2>
+
+<p>A <strong>virtual resource declaration</strong> specifies a desired state for a resource <strong>without</strong> adding it to the <a href="./lang_summary.html#compilation-and-catalogs">catalog</a>. You can then add the resource to the catalog by <strong>realizing</strong> it elsewhere in your manifests. This splits the work done by a normal <a href="./lang_resources.html">resource declaration</a> into two steps. </p>
+<p>Although virtual resources can only be <em>declared</em> once, they can be <em>realized</em> any number of times (much as a class may be <a href="./lang_classes.html#declaring-a-class-with-include"><code>included</code></a> multiple times). </p>
+<h2 id="purpose">Purpose</h2>
+<p>Virtual resources are useful for:</p>
+<ul>
+<li>Resources whose management depends on at least one of multiple conditions being met</li>
+<li>Overlapping sets of resources which may be required by any number of classes</li>
+<li>Resources which should only be managed if multiple cross-class conditions are met</li>
+</ul>
+<p>Virtual resources can be used in some of the same situations as <a href="./lang_classes.html">classes</a>, since they both offer a safe way to add a resource to the catalog in more than one place. The features that distinguish virtual resources are:</p>
+<ul>
+<li><strong>Searchability</strong> via <a href="./lang_collectors.html">resource collectors</a>, which lets you realize overlapping clumps of virtual resources</li>
+<li><strong>Flatness,</strong> such that you can declare a virtual resource and realize it a few lines later without having to clutter your modules with many single-resource classes</li>
+</ul>
+<p>For more details, see <a href="/guides/virtual_resources.html">Virtual Resource Design Patterns</a>.</p>
+<h2 id="syntax">Syntax</h2>
+<p>Virtual resources are used in two steps: declaring and realizing. </p>
+<pre><code>  # &lt;modulepath&gt;/apache/manifests/init.pp
+  ...
+  # Declare:
+  @a2mod { 'rewrite':
+    ensure =&gt; present,
+  } # note: The a2mod type is from the puppetlabs-apache module.
+
+  # &lt;modulepath&gt;/wordpress/manifests/init.pp
+  ...
+  # Realize: 
+  realize A2mod['rewrite']
+
+  # &lt;modulepath&gt;/freight/manifests/init.pp
+  ...
+  # Realize again:
+  realize A2mod['rewrite']
+</code></pre>
+<p>In the example above, the <code>apache</code> class declares a virtual resource, and both the <code>wordpress</code> and <code>freight</code> classes realize it. The resource will be managed on any node that has the <code>wordpress</code> and/or <code>freight</code> classes applied to it.</p>
+<h3 id="declaring-a-virtual-resource">Declaring a Virtual Resource</h3>
+<p>To declare a virtual resource, prepend <code>@</code> (the "at" sign) to the <strong>type</strong> of a normal <a href="./lang_resources.html">resource declaration</a>:</p>
+<pre><code>  @user {'deploy':
+    uid     =&gt; 2004,
+    comment =&gt; 'Deployment User',
+    group   =&gt; www-data,
+    groups  =&gt; ["enterprise"],
+    tag     =&gt; [deploy, web],
+  }
+</code></pre>
+<h3 id="realizing-with-the-realize-function">Realizing With the <code>realize</code> Function</h3>
+<p>To realize one or more virtual resources <strong>by title,</strong> use the <a href="/references/latest/function.html#realize"><code>realize</code></a> function, which accepts one or more <a href="./lang_datatypes.html#resource-references">resource references</a>:</p>
+<pre><code>  realize User['deploy'], User['zleslie']
+</code></pre>
+<p>The <code>realize</code> function may be used multiple times on the same virtual resource and the resource will only be added to the catalog once.</p>
+<h3 id="realizing-with-a-collector">Realizing With a Collector</h3>
+<p>Any <a href="./lang_collectors.html">resource collector</a> will realize any virtual resource that matches its <a href="./lang_collectors.html#search-expressions">search expression</a>:</p>
+<pre><code>  User &lt;| tag == web |&gt;
+</code></pre>
+<p>You can use multiple resource collectors that match a given virtual resource and it will only be added to the catalog once. </p>
+<p>Note that a collector used in an <a href="./lang_resources.html#amending-attributes-with-a-collector">override block</a> or a <a href="./lang_relationships.html#chaining-arrows">chaining statement</a> will also realize any matching virtual resources. </p>
+<h2 id="behavior">Behavior</h2>
+<p>By itself, a virtual resource declaration will not add any resources to the catalog. Instead, it makes the virtual resource available to the compiler, which may or may not realize it. A matching resource collector or a call to the <code>realize</code> function will cause the compiler to add the resource to the catalog. </p>
+<h3 id="parse-order-independence">Parse-Order Independence</h3>
+<p>Virtual resources do not depend on parse order. You may realize a virtual resource before the resource has been declared. </p>
+<h3 id="collectors-vs-the-realize-function">Collectors vs. the <code>realize</code> Function</h3>
+<p>The <code>realize</code> function will cause a compilation failure if you attempt to realize a virtual resource that has not been declared. Resource collectors will fail silently if they do not match any resources. </p>
+<h3 id="virtual-resources-in-classes">Virtual Resources in Classes</h3>
+<p>If a virtual resource is contained in a class, it cannot be realized unless the class is declared at some point during the compilation. A common pattern is to declare a class full of virtual resources and then use a collector to choose the set of resources you need:</p>
+<pre><code>  include virtual::users
+  User &lt;| groups == admin or group == wheel |&gt;
+</code></pre>
+<h3 id="defined-resource-types">Defined Resource Types</h3>
+<p>You may declare virtual resources of defined resource types. This will cause every resource contained in the defined resource to behave virtually --- they will not be added to the catalog unless the defined resource is realized.</p>
+<!-- dash-puppet-docset footer, layout: default -->
+              <blockquote><p style="font-size: 1.3em; text-align: center;"><a href="#content">↑ Back to top</a></p></blockquote>
+            </div>
+          </div>
+        </div>
+      </section>
+<div id="copyright">
+      <div class="site-width">
+        &copy; 2011 <a href="http://www.puppetlabs.com/" title="Puppet Labs">Puppet Labs</a>
+        <span class="vcard">
+         <span class="org"></span>
+         <a class="email" href="mailto:info@puppetlabs.com">info@puppetlabs.com</a>
+
+          <span class="adr">
+           <span class="street-address">926 NW 13th Avenue #210</span>
+           /
+           <span class="locality">Portland</span>,
+           <span class="region">OR</span>
+           <span class="postal-code">97209</span>
+
+          </span>
+
+         <span class="tel">1-877-575-9775</span>
+        </span>
+      </div>
+    </div>
+  </body>
+</html>
+</body>
+</html>

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en-US">
+<head>
+  	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  	<title>Language: Namespaces and Autoloading - Documentation - Puppet Labs</title>     
+    <meta name="keywords" content="Puppet, puppet labs, reductive labs, open source, system administrator, ruby, data center, automation, support" />
+    <link rel="canonical" href="http://docs.puppetlabs.com/lang_namespaces.html" />
+    <link rel="stylesheet" type="text/css" href="./stylesheets/style.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="./stylesheets/syntax.css" media="screen"> <!-- index -->
+</head>
+
+<body id="puppetlabsdocs" class="docs">
+<section id="content">
+  <div class="site-width">
+    <div class="primary-secondary-content">
+      <div class="primary-content">
+      <!-- dash-puppet-docset header, layout: default -->
+<h2 id="docset-header">Puppet Language: Namespaces and Autoloading <span class="version">2.7.21</span></h2>
+
+<p><a href="./lang_classes.html">Class</a> and <a href="./lang_defined_types.html">defined type</a> names may be broken up into segments called <strong>namespaces.</strong> Namespaces tell the autoloader how to find the class or defined type in your <a href="./modules_fundamentals.html">modules</a>. </p>
+<blockquote>
+<p><strong>Important note:</strong> Earlier versions of Puppet used namespaces to navigate nested class/type definitions, and the code that resolves names still behaves as though this were their primary use. <strong>This can sometimes result in the wrong class being loaded.</strong> This is a major outstanding design issue (<a href="https://projects.puppetlabs.com/issues/2053">issue #2053</a>) which will not be resolved in Puppet 2.7. <a href="#aside-historical-context">See below</a> for a full description of the issue.</p>
+</blockquote>
+<h2 id="syntax">Syntax</h2>
+<p>Puppet <a href="./lang_classes.html">class</a> and <a href="./lang_defined_types.html">defined type</a> names may consist of any number of namespace segments separated by the <code>::</code> (double colon) namespace separator. (This separator is analogous to the <code>/</code> [slash] in a file path.)</p>
+<pre><code>  class apache { ... }
+  class apache::mod { ... }
+  class apache::mod::passenger { ... }
+  define apache::vhost { ... }
+</code></pre>
+<p>Optionally, class/define names can begin with the top namespace, which is the empty string. The following names are equivalent: </p>
+<ul>
+<li><code>apache</code> and <code>::apache</code></li>
+<li><code>apache::mod</code> and <code>::apache::mod</code></li>
+<li>etc.</li>
+</ul>
+<p>This is ugly and should be unnecessary, but is occasionally required due to an outstanding design issue. <a href="#aside-historical-context">See below for details.</a></p>
+<h2 id="autoloader-behavior">Autoloader Behavior</h2>
+<p>When a class or defined resource is declared, Puppet will use its full name to find the class or defined type in your modules. Names are interpreted as follows:</p>
+<ul>
+<li>The first segment in a name (excluding the empty "top" namespace) identifies the <a href="./modules_fundamentals.html">module</a>. Every class and defined type should be in its own file in the module's <code>manifests</code> directory, and each file should have the <code>.pp</code> file extension.</li>
+<li>If there are <strong>no</strong> additional namespaces, Puppet will look for the class or defined type in the module's <code>init.pp</code> file.</li>
+<li>Otherwise, Puppet will treat the final segment as the file name and any interior segments as a series of subdirectories under the <code>manifests</code> directory.</li>
+</ul>
+<p>Thus, every class or defined type name maps directly to a file path within Puppet's <a href="./modules_fundamentals.html#the-modulepath"><code>modulepath</code></a>:</p>
+<table>
+<thead>
+<tr>
+<th>name</th>
+<th>file path</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>apache</code></td>
+<td><code>&lt;modulepath&gt;/apache/manifests/init.pp</code></td>
+</tr>
+<tr>
+<td><code>apache::mod</code></td>
+<td><code>&lt;modulepath&gt;/apache/manifests/mod.pp</code></td>
+</tr>
+<tr>
+<td><code>apache::mod::passenger</code></td>
+<td><code>&lt;modulepath&gt;/apache/manifests/mod/passenger.pp</code></td>
+</tr>
+</tbody>
+</table>
+<p>Note again that <code>init.pp</code> always contains a class or defined type named after the module, and any other <code>.pp</code> file contains a class or type with at least two namespace segments. (That is, <code>apache.pp</code> would contain a class named <code>apache::apache</code>.)</p>
+<h2 id="relative-name-lookup-and-incorrect-name-resolution">Relative Name Lookup and Incorrect Name Resolution</h2>
+<p>In Puppet 2.7, class name resolution is <strong>partially broken</strong> --- if the final namespace segment of a class in one module matches the name of another module, Puppet will sometimes load the wrong class.</p>
+<pre><code>  class bar {
+    notice("From class bar")
+  }
+  class foo::bar {
+    notice("From class foo::bar")
+  }
+  class foo {
+    include bar
+  }
+  include foo
+</code></pre>
+<p>In the example above, the invocation of <code>include bar</code> will actually declare class <code>foo::bar</code>. This is because Puppet assumes class and defined type names are <strong>relative</strong> until proven otherwise. This is a major outstanding design issue (<a href="https://projects.puppetlabs.com/issues/2053">issue #2053</a>) which will not be resolved in Puppet 2.7, as the fix will break a large amount of existing code and require a long deprecation period. </p>
+<h3 id="behavior">Behavior</h3>
+<p>When asked to load a class or defined type <code>foo</code>, Puppet will:</p>
+<ul>
+<li>Attempt to load <code>&lt;current namespace&gt;::foo</code></li>
+<li>If that fails, attempt to load <code>&lt;parent of current namespace&gt;::foo</code></li>
+<li>If that fails, continue searching for <code>foo</code> through every ancestor namespace</li>
+<li>Finally, attempt to load <code>foo</code> from the top namespace (AKA <code>::foo</code>)</li>
+</ul>
+<p>A concrete example:</p>
+<pre><code>  class apache::nagios {
+    include nagios
+    ...
+  }
+</code></pre>
+<p>When asked to <code>include nagios</code>, Puppet will first attempt to load <code>apache::nagios::nagios</code>. Since that class does not exist, it will then attempt to load <code>apache::nagios</code>. This exists, and since <a href="./lang_classes.html#declaring-a-class-with-include">the include function</a> can safely declare a class multiple times, Puppet does not complain. It will not attempt to load class <code>nagios</code> from the <code>nagios</code> module. </p>
+<h3 id="workaround">Workaround</h3>
+<p>If a class within another module is blocking the declaration of a top-namespace class, you can force the correct class to load by specifying its name from the top namespace (<a href="#syntax">as seen above</a>). To specify a name from the top namespace, prepend <code>::</code> (double colon) to it:</p>
+<pre><code>  class apache::nagios {
+    include ::nagios # Start searching from the top namespace instead of the local namespace
+    ...
+  }
+</code></pre>
+<p>In the example above, Puppet will load class <code>nagios</code> from the <code>nagios</code> module instead of declaring <code>apache::nagios</code> a second time.</p>
+<blockquote>
+<h3 id="aside-historical-context">Aside: Historical Context</h3>
+<p>Relative name lookup was introduced in pre-module versions of Puppet. It reflects an outdated assumption about how modules would be used.</p>
+<h4 id="proto-modules">Proto-Modules</h4>
+<p>Before modules were introduced, users would create module-like blobs by putting a group of related classes and defined types into one manifest file, then using an <a href="./lang_import.html">import</a> statement in <code>site.pp</code> to make the group available to the parser. </p>
+<pre><code>  # /etc/puppet/manifests/apache.pp
+  class apache { ... } # Manage Apache
+  class ssl { ... } # Optional SSL support for Apache
+  class python { ... } # Optional mod_python support for Apache
+  define vhost ($port) { ... } # Create an Apache vhost
+</code></pre>
+</blockquote>
+<pre><code>  # /etc/puppet/manifests/site.pp
+  import apache.pp
+  include apache
+  include ssl
+</code></pre>
+<blockquote>
+<h4 id="namespacing-for-redistribution">Namespacing for Redistribution</h4>
+<p>As proto-modules got more sophisticated, their authors wanted to share them with other users. The problem with this is visible above: many modules were likely to have a <code>python</code> or <code>ssl</code> class, and the <code>lighttpd</code> module probably had a <code>vhost</code> define that clashed with the Apache one. </p>
+<p>The solution was namespacing, which would allow different proto-modules to use common class and defined type names without competing for global identifiers. </p>
+<h4 id="private-vs-public">Private vs. Public</h4>
+<p>The implementation of namespaces relied on an assumption that turned out to be incorrect: that classes and defined types other than the module's main class would (and should) mostly be used inside the module, rather than applied directly to nodes. (That is, they would be <em>private,</em> much like local variables.) Thus, namespacing was done by hiding definitions within other definitions:</p>
+<pre><code>  class apache {
+    ...
+    class ssl { ... }
+    class python { ... }
+    define vhost ($port) { ... }
+  }
+</code></pre>
+<p>The short names of the internal classes and defined types could only be used inside the main class. However, much like qualified variables, you could access them from anywhere by using their full (that is, namespaced) name. Full names were constructed by prepending the full name of the "outer" class, along with the <code>::</code> namespace separator. (That is, the full name of <code>ssl</code> would be <code>apache::ssl</code>, <code>python</code> would be <code>apache::python</code>, etc.)</p>
+<p>This was the origin of the relative name lookup behavior, as Puppet assumed that a class that had its own private <code>python</code> class would want to use that instead of the top-namespace <code>python</code> class. </p>
+<h4 id="this-turned-out-to-be-pointless">This Turned Out to be Pointless</h4>
+<p>Users and developers eventually realized several things about this arrangement: </p>
+<ul>
+<li>Using a class's full name everywhere was actually not that big a deal and was in fact a lot clearer and easier to read and maintain.</li>
+<li>Public classes and defined types were more common than private ones and optimizing for the less common case was an odd approach. </li>
+<li>Even for classes and defined types that <em>were</em> only used within their module, there was little real benefit to be gained by making them "private," since they were effectively public via their full name anyway.</li>
+</ul>
+<p>Those realizations led to the superior <a href="./modules_fundamentals.html">module</a> autoloader design used today, where a class's "full" name is effectively its only name. However, the previous name lookup behavior was never deprecated or removed, for fear of breaking large amounts of existing code. This leaves it present in Puppet 2.7, where it often annoys users who have adopted the modern code style.</p>
+<p>We plan to fix this in a future release, after a suitable deprecation period. </p>
+</blockquote>
+<!-- dash-puppet-docset footer, layout: default -->
+              <blockquote><p style="font-size: 1.3em; text-align: center;"><a href="#content">↑ Back to top</a></p></blockquote>
+            </div>
+          </div>
+        </div>
+      </section>
+<div id="copyright">
+      <div class="site-width">
+        &copy; 2011 <a href="http://www.puppetlabs.com/" title="Puppet Labs">Puppet Labs</a>
+        <span class="vcard">
+         <span class="org"></span>
+         <a class="email" href="mailto:info@puppetlabs.com">info@puppetlabs.com</a>
+
+          <span class="adr">
+           <span class="street-address">926 NW 13th Avenue #210</span>
+           /
+           <span class="locality">Portland</span>,
+           <span class="region">OR</span>
+           <span class="postal-code">97209</span>
+
+          </span>
+
+         <span class="tel">1-877-575-9775</span>
+        </span>
+      </div>
+    </div>
+  </body>
+</html>
+</body>
+</html>

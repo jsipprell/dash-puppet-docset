@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en-US">
+<head>
+  	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  	<title>Language: Importing Manifests - Documentation - Puppet Labs</title>     
+    <meta name="keywords" content="Puppet, puppet labs, reductive labs, open source, system administrator, ruby, data center, automation, support" />
+    <link rel="canonical" href="http://docs.puppetlabs.com/lang_import.html" />
+    <link rel="stylesheet" type="text/css" href="./stylesheets/style.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="./stylesheets/syntax.css" media="screen"> <!-- index -->
+</head>
+
+<body id="puppetlabsdocs" class="docs">
+<section id="content">
+  <div class="site-width">
+    <div class="primary-secondary-content">
+      <div class="primary-content">
+      <!-- dash-puppet-docset header, layout: default -->
+<h2 id="docset-header">Puppet Language: Importing Manifests <span class="version">2.7.21</span></h2>
+
+<!-- TODO: need better link for site.pp and certname-->
+
+<p>Puppet's normal behavior is to compile a single manifest (the "<a href="./lang_summary.html#files">site manifest</a>") and autoload any referenced classes from <a href="./modules_fundamentals.html">modules</a> (optionally doing the same with a list of classes from an <a href="/guides/external_nodes.html">ENC</a>). </p>
+<p>The <code>import</code> keyword causes Puppet to compile more than one manifest without autoloading from modules. </p>
+<blockquote>
+<h4 id="aside-best-practices">Aside: Best Practices</h4>
+<p>You should generally <strong>avoid the <code>import</code> keyword.</strong> It was introduced to the language before modules existed, and was rendered mostly obsolete once Puppet could autoload classes and defined types from modules. Mixing <code>import</code> and modules can often cause bizarre results.</p>
+<p>The one modern use for importing is to allow <a href="./lang_node_definitions.html">node definitions</a> to be stored in several files. However, note that this requires you to restart the puppet master or edit site.pp whenever you edit your nodes. </p>
+</blockquote>
+<h2 id="syntax">Syntax</h2>
+<pre><code>  # /etc/puppetlabs/puppet/manifests/site.pp
+
+  # import many manifest files with node definitions
+  import 'nodes/*.pp'
+
+  # import a single manifest file with node definitions
+  import 'nodes.pp'
+</code></pre>
+<p>An import statement consists of the <code>import</code> keyword, followed by a literal quoted string with no variable interpolation. </p>
+<p>The string provided must be a file path or file glob (as implemented by Ruby's <code>Dir.glob</code> method). These paths must resolve to one or more Puppet manifest (.pp) files.</p>
+<p>If the file path or glob is not fully qualified, it will be resolved <em>relative to the manifest file in which the <code>import</code> statement is found.</em> Thus, the examples above assume that both the <code>nodes/</code> directory and the <code>nodes.pp</code> file are in the same <code>/etc/puppetlabs/puppet/manifests</code> directory as site.pp.</p>
+<h2 id="behavior">Behavior</h2>
+<p>Import statements have the following characteristics:</p>
+<ul>
+<li>They read the contents of the requested file(s) and add their code to top scope</li>
+<li>They are processed before any other code in the manifest is parsed</li>
+<li>They cannot be contained by conditional structures or node/class definitions</li>
+</ul>
+<p>These quirks mean <strong>the location of an import statement in a manifest does not matter.</strong> If an uncommented import statement exists anywhere in a manifest, it will always run (even if it looks like it shouldn't) and the code it imports will not be contained in any definition or conditional. The following example illustrates this:</p>
+<pre><code>  # /etc/puppetlabs/puppet/manifests/site.pp
+  node 'kestrel.example.com' {
+      import 'nodes/kestrel.pp'
+  }
+
+  # /etc/puppetlabs/puppet/manifests/nodes/kestrel.pp
+  include ntp
+  include apache2
+</code></pre>
+<p>This import statement looks like it should insert code INTO the node definition that contains it; instead, it will insert the code outside any node definition, and it will do so regardless of whether the node definition matches the current node. The <code>ntp</code> and <code>apache2</code> classes would be applied to every node. </p>
+<h3 id="implications-and-best-practices">Implications and Best Practices</h3>
+<p>Due to the non-standard behavior of <code>import</code>, any imported file should only contain constructs like node definitions and class definitions, which can exist at top scope without necessarily executing on every node. </p>
+<h3 id="interactions-with-the-autoloader">Interactions With the Autoloader</h3>
+<p>The behavior of <code>import</code> within autoloaded manifests is <strong>undefined,</strong> and may vary randomly between minor versions of Puppet. You should never place <code>import</code> statements in modules; they should only exist in <a href="./lang_summary.html#files">site.pp</a>.</p>
+<h3 id="inability-to-reload">Inability to Reload</h3>
+<p>The puppet master service monitors its main <a href="./lang_summary.html#files">site manifest</a> and modules and will reload the files whenever they are edited. However, because it only evaluates file globs when the parent file containing them is reloaded, it cannot tell when imported manifests have been changed. </p>
+<p>Thus, if you use <code>import</code> statements, you must manually cause your files to be reloaded whenever you edit your imported manifests. You can do this by:</p>
+<ul>
+<li>Restarting the puppet master</li>
+<li>Editing (or <code>touch</code>ing) site.pp to trigger a reload</li>
+</ul>
+<!-- dash-puppet-docset footer, layout: default -->
+              <blockquote><p style="font-size: 1.3em; text-align: center;"><a href="#content">↑ Back to top</a></p></blockquote>
+            </div>
+          </div>
+        </div>
+      </section>
+<div id="copyright">
+      <div class="site-width">
+        &copy; 2011 <a href="http://www.puppetlabs.com/" title="Puppet Labs">Puppet Labs</a>
+        <span class="vcard">
+         <span class="org"></span>
+         <a class="email" href="mailto:info@puppetlabs.com">info@puppetlabs.com</a>
+
+          <span class="adr">
+           <span class="street-address">926 NW 13th Avenue #210</span>
+           /
+           <span class="locality">Portland</span>,
+           <span class="region">OR</span>
+           <span class="postal-code">97209</span>
+
+          </span>
+
+         <span class="tel">1-877-575-9775</span>
+        </span>
+      </div>
+    </div>
+  </body>
+</html>
+</body>
+</html>

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en-US">
+<head>
+  	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  	<title>Language: Run Stages - Documentation - Puppet Labs</title>     
+    <meta name="keywords" content="Puppet, puppet labs, reductive labs, open source, system administrator, ruby, data center, automation, support" />
+    <link rel="canonical" href="http://docs.puppetlabs.com/lang_run_stages.html" />
+    <link rel="stylesheet" type="text/css" href="./stylesheets/style.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="./stylesheets/syntax.css" media="screen"> <!-- index -->
+</head>
+
+<body id="puppetlabsdocs" class="docs">
+<section id="content">
+  <div class="site-width">
+    <div class="primary-secondary-content">
+      <div class="primary-content">
+      <!-- dash-puppet-docset header, layout: default -->
+<h2 id="docset-header">Puppet Language: Run Stages <span class="version">2.7.21</span></h2>
+
+<p>Run stages are an additional way to order resources. They allow groups of classes to run before or after nearly everything else, without having to explicitly create relationships with every other class. Run stages were added in Puppet 2.6.0. </p>
+<p>Run stages have <a href="#limitations-and-known-issues">several major limitations</a>; you should understand these before attempting to use them. </p>
+<p>The run stage feature has two parts: </p>
+<ul>
+<li>A <code>stage</code> resource type.</li>
+<li>A <code>stage</code> <a href="./lang_resources.html#metaparameters">metaparameter</a>, which assigns a class to a named run stage.</li>
+</ul>
+<h2 id="the-default-main-stage">The Default <code>main</code> Stage</h2>
+<p>By default there is only one stage (named "<code>main</code>"). All resources are automatically associated with this stage unless explicitly assigned to a different one. If you do not use run stages, every resource is in the main stage.</p>
+<h2 id="custom-stages">Custom Stages</h2>
+<p>Additional stages are declared as normal resources. Each additional stage must have an <a href="./lang_relationships.html">order relationship</a> with another stage, such as <code>Stage['main']</code>. As with normal resources, these relationships can be specified with metaparameters or with chaining arrows.</p>
+<pre><code>  stage { 'first': 
+    before =&gt; Stage['main'],
+  }
+  stage { 'last': }
+  Stage['main'] -&gt; Stage['last']
+</code></pre>
+<p>In the above example, all classes assigned to the <code>first</code> stage will be applied before the classes associated with the <code>main</code> stage and both stages will be applied before the <code>last</code> stage.</p>
+<h2 id="assigning-classes-to-stages">Assigning Classes to Stages</h2>
+<p>Once stages have been declared, a <a href="./lang_classes.html">class</a> may be assigned to a custom stage with the <code>stage</code> metaparameter.</p>
+<pre><code>  class { 'apt-keys':
+    stage =&gt; first,
+  }
+</code></pre>
+<p>The above example will ensure that the <code>apt-keys</code> class happens before all other classes, which can be useful if most of your package resources rely on those keys. </p>
+<p>In order to assign a class to a stage, you <strong>must</strong> use the <a href="./lang_classes.html#declaring-a-class-like-a-resource">resource-like</a> class declaration syntax. You <strong>cannot</strong> assign classes to stages with the <code>include</code> function.</p>
+<h2 id="limitations-and-known-issues">Limitations and Known Issues</h2>
+<ul>
+<li>You cannot assign a class to a run stage when declaring it with <code>include</code>.</li>
+<li>You cannot subscribe to or notify resources across a stage boundary.</li>
+<li>Due to the "anchor pattern issue" with <a href="./lang_containment.html">containment</a>, classes that declare other classes will behave badly if declared with a run stage. (The second-order classes will "float off" into the main stage, and since the first-order class likely depended on their resources, this will likely cause failures.)</li>
+</ul>
+<p>Due to these limitations, <strong>stages should only be used with the simplest of classes,</strong> and only when absolutely necessary. Mass dependencies like package repositories are effectively the only valid use case.</p>
+<!-- dash-puppet-docset footer, layout: default -->
+              <blockquote><p style="font-size: 1.3em; text-align: center;"><a href="#content">↑ Back to top</a></p></blockquote>
+            </div>
+          </div>
+        </div>
+      </section>
+<div id="copyright">
+      <div class="site-width">
+        &copy; 2011 <a href="http://www.puppetlabs.com/" title="Puppet Labs">Puppet Labs</a>
+        <span class="vcard">
+         <span class="org"></span>
+         <a class="email" href="mailto:info@puppetlabs.com">info@puppetlabs.com</a>
+
+          <span class="adr">
+           <span class="street-address">926 NW 13th Avenue #210</span>
+           /
+           <span class="locality">Portland</span>,
+           <span class="region">OR</span>
+           <span class="postal-code">97209</span>
+
+          </span>
+
+         <span class="tel">1-877-575-9775</span>
+        </span>
+      </div>
+    </div>
+  </body>
+</html>
+</body>
+</html>

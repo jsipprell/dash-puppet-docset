@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en-US">
+<head>
+  	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  	<title>Language: Defined Resource Types - Documentation - Puppet Labs</title>     
+    <meta name="keywords" content="Puppet, puppet labs, reductive labs, open source, system administrator, ruby, data center, automation, support" />
+    <link rel="canonical" href="http://docs.puppetlabs.com/lang_defined_types.html" />
+    <link rel="stylesheet" type="text/css" href="./stylesheets/style.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="./stylesheets/syntax.css" media="screen"> <!-- index -->
+</head>
+
+<body id="puppetlabsdocs" class="docs">
+<section id="content">
+  <div class="site-width">
+    <div class="primary-secondary-content">
+      <div class="primary-content">
+      <!-- dash-puppet-docset header, layout: default -->
+<h2 id="docset-header">Puppet Language: Defined Resource Types <span class="version">2.7.21</span></h2>
+
+<!-- TODO: need better link for site.pp -->
+
+<p><strong>Defined resource types</strong> (also called <strong>defined types</strong> or <strong>defines</strong>) are blocks of Puppet code that can be evaluated multiple times with different parameters. Once defined, they act like a new resource type: you can cause the block to be evaluated by <a href="./lang_resources.html#resource-declarations">declaring a resource</a> of that new type. </p>
+<p>Defines can be used as simple macros or as a lightweight way to develop fairly sophisticated resource types. </p>
+<h2 id="syntax">Syntax</h2>
+<h3 id="defining-a-type">Defining a Type</h3>
+<pre><code>  # /etc/puppetlabs/puppet/modules/apache/manifests/vhost.pp
+  define apache::vhost ($port, $docroot, $servername = $title, $vhost_name = '*') {
+    include apache # contains Package['httpd'] and Service['httpd']
+    include apache::params # contains common config settings
+    $vhost_dir = $apache::params::vhost_dir
+    file { "${vhost_dir}/${servername}.conf":
+      content =&gt; template('apache/vhost-default.conf.erb'), 
+        # This template can access all of the parameters and variables from above.
+      owner   =&gt; 'www',
+      group   =&gt; 'www',
+      mode    =&gt; '644',
+      require =&gt; Package['httpd'],
+      notify  =&gt; Service['httpd'],
+    }
+  }
+</code></pre>
+<p>This creates a new type called <code>apache::vhost</code>.</p>
+<p>The general form of a type definition is:</p>
+<ul>
+<li>The <code>define</code> keyword</li>
+<li>The <a href="./lang_reserved.html#classes-and-types">name</a> of the defined type</li>
+<li>An optional <strong>set of parameters,</strong> which consists of:<pre><code>* An opening parenthesis
+* A comma-separated list of **parameters,** each of which consists of:
+    * A new [variable][] name, including the `$` prefix
+    * An optional equals sign and **default value** (any data type)
+* An optional trailing comma after the last parameter (Puppet 2.7.8 and later)
+* A closing parenthesis
+</code></pre>
+</li>
+<li>An opening curly brace</li>
+<li>A block of arbitrary Puppet code, which generally contains at least one <a href="./lang_resources.html#resource-declarations">resource declaration</a></li>
+<li>A closing curly brace</li>
+</ul>
+<p>The definition does not cause the code in the block to be added to the <a href="./lang_summary.html#compilation-and-catalogs">catalog</a>; it only makes it available. To execute the code, you must declare one or more resources of the defined type.</p>
+<h3 id="declaring-an-instance">Declaring an Instance</h3>
+<p>Instances of a defined type (often just called "resources") can be declared the same way a <a href="./lang_resources.html#resource-declarations">normal resource</a> is declared. (That is, with a type, title, and set of attribute/value pairs.)</p>
+<p>The <strong>parameters</strong> used when defining the type become the <strong>attributes</strong> (without the <code>$</code> prefix) used when declaring resources of that type. Parameters which have a <strong>default value</strong> are optional; if they are left out of the declaration, the default will be used. Parameters without defaults <strong>must</strong> be specified.</p>
+<p>To declare a resource of the <code>apache::vhost</code> type from the example above:</p>
+<pre><code>  apache::vhost {'homepages':
+    port    =&gt; 8081,
+    docroot =&gt; '/var/www-testhost',
+  }
+</code></pre>
+<h2 id="behavior">Behavior</h2>
+<p>If a defined type is present, you can declare resources of that type anywhere in your manifests. See <a href="#location">"Location"</a> below for details. </p>
+<p>Declaring a resource of the type will cause Puppet to re-evaluate the block of code in the definition, using different values for the parameters. </p>
+<h3 id="parameters-and-attributes">Parameters and Attributes</h3>
+<p>Every parameter of a defined type can be used as a local variable inside the definition. These variables are not set with <a href="./lang_variables.html#assignment">normal assignment statements</a>; instead, each instance of the defined type uses its attributes to set them:</p>
+<pre><code>  apache::vhost {'homepages':
+    port    =&gt; 8081, # Becomes the value of $port
+    docroot =&gt; '/var/www-testhost', # Becomes the value of $docroot
+  }
+</code></pre>
+<h3 id="title-and-name"><code>$title</code> and <code>$name</code></h3>
+<p>Every defined type gets two "free" parameters, which are always available and do not have to be explicitly added to the definition:</p>
+<ul>
+<li><code>$title</code> is always set to the <a href="./lang_resources.html#title">title</a> of the instance. Since it is guaranteed to be unique for each instance, it is useful when making sure that contained resources are unique. (See "<a href="#resource-uniqueness">Resource Uniqueness</a>" below.)</li>
+<li><code>$name</code> defaults to the value of <code>$title</code>, but users can optionally specify a different value when they declare an instance. This is only useful for mimicking the behavior of a resource with a namevar, which is usually unnecessary. If you are wondering whether to use <code>$name</code> or <code>$title</code>, use <code>$title</code>. </li>
+</ul>
+<p>Unlike the other parameters, the values of <code>$title</code> and <code>$name</code> are already available <strong>inside the parameter list.</strong> This means you can use <code>$title</code> as the default value (or part of the default value) for another attribute:</p>
+<pre><code>  define apache::vhost ($port, $docroot, $servername = $title, $vhost_name = '*') { ...
+</code></pre>
+<h3 id="resource-uniqueness">Resource Uniqueness</h3>
+<p>Since multiple instances of a defined type might be declared in your manifests, you must make sure that every resource in the definition will be <strong>different in every instance.</strong> Failing to do this will result in compilation failures with a "duplicate resource declaration" error. </p>
+<p>You can make resources different across instances by making their <strong>titles</strong> and <strong>names/namevars</strong> include the value of <code>$title</code> or another parameter. </p>
+<pre><code>  file { "${vhost_dir}/${servername}.conf":
+</code></pre>
+<p>Since <code>$title</code> (and possibly other parameters) will be unique per instance, this ensures the resources will be unique as well. </p>
+<h3 id="containment">Containment</h3>
+<p>Every instance of a defined type <a href="./lang_containment.html">contains</a> all of its unique resources. This means any <a href="./lang_relationships.html">relationships</a> formed between the instance and another resource will be extended to every resource that makes up the instance. </p>
+<h3 id="metaparameters">Metaparameters</h3>
+<p>The declaration of a defined type instance can include any <a href="./lang_resources.html#metaparameters">metaparameter</a>. If it does:</p>
+<ul>
+<li>Every resource contained in the instance will also have that metaparameter. So if you declare a defined resource with <code>noop =&gt; true</code>, every resource contained in it will also have <code>noop =&gt; true</code>, unless they specifically override it. Metaparameters which can take more than one value (like the <a href="./lang_relationships.html">relationship</a> metaparameters) will merge the values from the container and any specific values from the individual resource.</li>
+<li>The value of the metaparameter can be used as a variable in the definition, as though it were a normal parameter. (For example, in an instance declared with <code>require =&gt; Class['ntp']</code>, the local value of <code>$require</code> would be <code>Class['ntp']</code>.)</li>
+</ul>
+<h3 id="resource-defaults">Resource Defaults</h3>
+<p>Just like with a normal resource type, you can declare <a href="./lang_defaults.html">resource defaults</a> for a defined type:</p>
+<pre><code>  # /etc/puppetlabs/puppet/manifests/site.pp
+  Apache::Vhost {
+    port =&gt; 80,
+  }
+</code></pre>
+<p>In this example, every resource of the type would default to port 80 unless specifically overridden. </p>
+<h2 id="location">Location</h2>
+<p>Defined types can (and should) be stored in <a href="./modules_fundamentals.html">modules</a>. Puppet is automatically aware of any defined types in a valid module and can autoload them by name. Definitions should be stored in the <code>manifests/</code> directory of a module with one definition per file and each filename should reflect the name of its type. See <a href="./modules_fundamentals.html">Module Fundamentals</a> for more details. </p>
+<blockquote>
+<h4 id="aside-best-practices">Aside: Best Practices</h4>
+<p>You should usually only load defined types from modules. Although the additional options below this aside will work, they are not recommended.</p>
+</blockquote>
+<p>You can also put type definitions in <a href="./lang_summary.html#files">the site manifest</a>. If you do so, they may be placed anywhere in the file and are not parse-order dependent.</p>
+<p>Type definitions may also be placed inside class definitions; however, this limits their availability to that class and is not recommended for any purpose. This is not formally deprecated in this version of Puppet (2.7), but may become so in a future release.</p>
+<h2 id="naming">Naming</h2>
+<p><a href="./lang_reserved.html#classes-and-types">The characters allowed in a defined type's name are listed here</a>. </p>
+<p>If the definition is stored in a module, its name must reflect its place in the module with its <a href="./lang_namespaces.html">namespace</a>. See <a href="./modules_fundamentals.html">Module Fundamentals</a> for details. </p>
+<p>Note that if a type's name has one or more <a href="./lang_namespaces.html">namespaces</a> in it, each name segment must be capitalized when writing a <a href="./lang_datatypes.html#resource-references">resource reference</a>, <a href="./lang_collectors.html">collector</a>, or <a href="./lang_defaults.html">resource default</a>. (For example, a reference to the vhost resource declared above would be <code>Apache::Vhost['homepages']</code>.)</p>
+<!-- dash-puppet-docset footer, layout: default -->
+              <blockquote><p style="font-size: 1.3em; text-align: center;"><a href="#content">↑ Back to top</a></p></blockquote>
+            </div>
+          </div>
+        </div>
+      </section>
+<div id="copyright">
+      <div class="site-width">
+        &copy; 2011 <a href="http://www.puppetlabs.com/" title="Puppet Labs">Puppet Labs</a>
+        <span class="vcard">
+         <span class="org"></span>
+         <a class="email" href="mailto:info@puppetlabs.com">info@puppetlabs.com</a>
+
+          <span class="adr">
+           <span class="street-address">926 NW 13th Avenue #210</span>
+           /
+           <span class="locality">Portland</span>,
+           <span class="region">OR</span>
+           <span class="postal-code">97209</span>
+
+          </span>
+
+         <span class="tel">1-877-575-9775</span>
+        </span>
+      </div>
+    </div>
+  </body>
+</html>
+</body>
+</html>
