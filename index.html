@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/pygment_trac.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print" />
+
+    <title>Dash-puppet-docset by jsipprell</title>
+  </head>
+
+  <body>
+
+    <header>
+      <div class="container">
+        <h1>Dash-puppet-docset</h1>
+        <h2>Dash docset for puppet (2.7.21 only at the moment)</h2>
+
+        <section id="downloads">
+          <a href="https://github.com/jsipprell/dash-puppet-docset/zipball/master" class="btn">Download as .zip</a>
+          <a href="https://github.com/jsipprell/dash-puppet-docset/tarball/master" class="btn">Download as .tar.gz</a>
+          <a href="https://github.com/jsipprell/dash-puppet-docset" class="btn btn-github"><span class="icon"></span>View on GitHub</a>
+        </section>
+      </div>
+    </header>
+
+    <div class="container">
+      <section id="main_content">
+        <h1>dash-puppet-docset</h1>
+
+<p>Dash docset for puppet (2.7.21 only at the moment)</p>
+
+<p>This docset was generated from the <a href="https://github.com/puppetlabs/puppet-docs">puppet-docs github git repo</a>, it only contains reference documentation for puppet
+2.7.21 at the moment. See <a href="http://docs.puppetlabs.com/puppet/">here</a> for more information on puppet.</p>
+
+<p>This was a fairly fast-paced attempt, at as yet there is no way to automate pulling in the html generated from puppet-docs,
+as it embeds a lot of unrelated content (site navigation, etc) into each page. I removed all extraneous content and
+paired it down to the fundamentals manually. I also had to make some minor modifications to the css, although I tried to
+stay away from anything that was fundamental to the look-and-feel of the reference itself.</p>
+
+<h2>Regenerating the docset Index</h2>
+
+<p>The Dash docset sqlite index can be regenerated via:</p>
+
+<pre><code>$ echo 'delete from searchIndex;' | sqlite3 puppet.docset/Contents/Resources/docSet.dsidx
+$ ./regen-sql-index.sh | sqlite3 puppet.docset/Contents/Resources/docSet.dsidx
+</code></pre>
+
+<h2>Feed</h2>
+
+<p><del>A dash installable feed is available here (you'll need to open it inside Dash, I've nowhere to serve a url-encoded <em>dash-feed://</em> url from): <a href="https://raw.github.com/jsipprell/dash-puppet-docset/master/Puppet.xml">https://raw.github.com/jsipprell/dash-puppet-docset/master/Puppet.xml</a></del></p>
+
+<p>An automatic feed is currently unavailable and downloading the xml from the above link also won't work. Unfortunately,
+You'll need to download the tarball directly from github and load it manually. Sorry, I don't have time to figure
+out the problem at the moment, but I assure you that manually opening the .docset "file" (found in the tarball)
+from either Finder or Dash will work.</p>
+
+<h2>Issues</h2>
+
+<ul>
+<li>There isn't always clear mapping between Dash docset "Entry Types" and the elements of the <a href="http://docs.puppetlabs.com/puppet/2.7/reference/">puppet reference manual</a>.
+For example, "Indirections" -- I've set those to Dash's "Interface" type, but that obviously isn't really right.</li>
+<li>The docset index page is set to the puppet types page because it's what I use most, but it would probably be good to pull in
+something more generic/appropriate from puppet-docs.</li>
+<li>Only 2.7.21 docs (really, 2.7."latest") at the moment.</li>
+<li>Automation for pulling in docs from the original puppet markdown or modifying the puppet-docs regen
+is some fashion so that it can generate a docset.</li>
+<li>Figure out how to provide nested references ala some of the other docsets (Python, Apple, etc)</li>
+</ul>
+      </section>
+    </div>
+
+    
+  </body>
+</html>
