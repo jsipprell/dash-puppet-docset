@@ -20,8 +20,12 @@ The Dash docset sqlite index can be regenerated via:
 
 Feed
 ----
-A dash installable feed is available here (you'll need to open it inside Dash, I've nowhere to serve a url-encoded
-*dash-feed://* url from): https://raw.github.com/jsipprell/dash-puppet-docset/master/Puppet.xml
+~~A dash installable feed is available here (you'll need to open it inside Dash, I've nowhere to serve a url-encoded *dash-feed://* url from): https://raw.github.com/jsipprell/dash-puppet-docset/master/Puppet.xml~~
+
+An automatic feed is currently unavailable and downloading the xml from the above link also won't work. Unfortunately,
+You'll need to download the tarball directly from github and load it manually. Sorry, I don't have time to figure
+out the problem at the moment, but I assure you that manually opening the .docset "file" (found in the tarball)
+from either Finder or Dash will work.
 
 Issues
 ------
