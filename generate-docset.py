@@ -5,11 +5,10 @@ Requirements:
 
  1. Python markdown package (run: easy_install markdown)
 
- 2. Clone of the githug python-docs repo (run: git clone git://github.com/puppetlabs/puppet-docs.git)
+ 2. Recursively clone the dash-puppet-docset github repo:
+    git clone --recursive git://github.com/jsipprell/dash-puppet-docset.git
 
- 3. Symlink the clone into this directory (or clone it here); alternatively set PUPPET_DOCS env var.
-
- 4. Specify the global version numbers to generate below or set PUPPET=3 and PUPPET_REFERENCE=3.1.4 env vars.
+ 3. Specify the global version numbers to generate below or set PUPPET=3 and PUPPET_REFERENCE=3.1.4 env vars.
 '''
 
 import sys,os,codecs,os.path,re,atexit,markdown
