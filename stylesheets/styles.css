@@ -325,6 +325,10 @@ footer {
 	padding-left: 50px;
 }
 
+#footer {
+  display: hidden;
+}
+
 @media print, screen and (max-width: 960px) {
 
   div.wrapper {
