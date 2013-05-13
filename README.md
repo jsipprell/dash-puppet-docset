@@ -1,7 +1,7 @@
 dash-puppet-docset
 ==================
 
-Dash docset for puppet (2.7.21 only at the moment)
+Dash docset for puppet (2.7.21 only at the moment).  Visit [dash-puppet-docset][] for more info.
 
 This docset was generated from the [puppet-docs github git repo][2], it only contains reference documentation for puppet
 2.7.21 at the moment. See [here][1] for more information on puppet.
@@ -41,3 +41,4 @@ Issues
 [1]: http://docs.puppetlabs.com/puppet/
 [2]: https://github.com/puppetlabs/puppet-docs
 [3]: http://docs.puppetlabs.com/puppet/2.7/reference/
+[dash-puppet-docset]: http://jsipprell.github.io/dash-puppet-docset/
