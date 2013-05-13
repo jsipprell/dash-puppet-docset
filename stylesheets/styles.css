@@ -325,7 +325,7 @@ footer {
 	padding-left: 50px;
 }
 
-#footer {
+.hidden {
   display: hidden;
 }
 
