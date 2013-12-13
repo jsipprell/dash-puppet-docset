@@ -14,7 +14,7 @@ Requirements:
 import sys,os,codecs,os.path,re,atexit,markdown
 from glob import glob
 
-OUTPUT=u'puppet.docset/Contents/Resources/Documents'
+OUTPUT=u'puppet_2.docset/Contents/Resources/Documents'
 SQL_OUTPUT=u'regen.sql'
 PUPPET=u'2.7'
 PUPPET_REFERENCE=u'2.7.21'

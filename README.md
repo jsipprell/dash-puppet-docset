@@ -15,8 +15,8 @@ Regenerating the docset Index
 -----------------------------
 The Dash docset sqlite index can be regenerated via:
 
-    $ echo 'delete from searchIndex;' | sqlite3 puppet.docset/Contents/Resources/docSet.dsidx
-    $ ./regen-sql-index.sh | sqlite3 puppet.docset/Contents/Resources/docSet.dsidx
+    $ echo 'delete from searchIndex;' | sqlite3 puppet_2.docset/Contents/Resources/docSet.dsidx
+    $ ./regen-sql-index.sh | sqlite3 puppet_2.docset/Contents/Resources/docSet.dsidx
 
 Feed
 ----

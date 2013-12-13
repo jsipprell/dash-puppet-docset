@@ -21,7 +21,7 @@ function output_type() {
 }
 
 if [ $# -eq 0 ]; then
-  [[ $docdir ]] || docdir=puppet.docset/Contents/Resources/Documents
+  [[ $docdir ]] || docdir=puppet_2.docset/Contents/Resources/Documents
   output_type Directive $docdir/configuration.html
   output_type Function $docdir/function.html
   output_type Interface $docdir/indirection.html
